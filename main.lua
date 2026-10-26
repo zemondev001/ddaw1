@@ -3493,6 +3493,7 @@ Sources[23] = function(script)
 --   local g = Tab:AddGallery("Team", {
 --       Title = "Story team",
 --       TileSize = 72,                              -- optional, px
+--       FullWidth = true, AspectRatio = 2.2,        -- optional: tiles span the section (banners, maps)
 --       Items = {
 --           { Image = "rbxassetid://123", Text = "Shinobi", Badge = "6" },
 --           { Model = someModel, Text = "Bulma" },   -- cloned into a viewport, camera auto-framed
@@ -3541,6 +3542,8 @@ function Element:New(Idx, Config)
 	if type(Idx) == "table" and Config == nil then Idx, Config = nil, Idx end
 	local Library = self.Library
 	local TileSize = Config.TileSize or 64
+	local FullWidth = Config.FullWidth == true
+	local AspectRatio = Config.AspectRatio or 2.2
 
 	local Gallery = { Type = "Gallery", Items = {} }
 	local GalleryFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false)
@@ -3555,7 +3558,10 @@ function Element:New(Idx, Config)
 		LayoutOrder = 2,
 		Parent = GalleryFrame.LabelHolder,
 	}, {
-		New("UIGridLayout", {
+		FullWidth and New("UIListLayout", {
+			Padding = UDim.new(0, 6),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}) or New("UIGridLayout", {
 			CellSize = UDim2.fromOffset(TileSize, TileSize + 18),
 			CellPadding = UDim2.fromOffset(6, 6),
 			SortOrder = Enum.SortOrder.LayoutOrder,
@@ -3563,7 +3569,85 @@ function Element:New(Idx, Config)
 		New("UIPadding", { PaddingTop = UDim.new(0, 6) }),
 	})
 
+	-- wide tile: image fills (cropped), caption over a dark gradient at the bottom
+	local function wideTile(index, item)
+		local scale = New("UIScale", { Scale = 0.95 })
+		local media = item.Model and viewport(item.Model, TileSize) or New("ImageLabel", {
+			BackgroundTransparency = 1,
+			Image = item.Image or "",
+			ScaleType = Enum.ScaleType.Crop,
+		})
+		media.Size = UDim2.fromScale(1, 1)
+		New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = media })
+		local holder = New("Frame", {
+			LayoutOrder = index,
+			Size = UDim2.new(1, -2, 0, 0),
+			BackgroundTransparency = 0.9,
+			ClipsDescendants = true,
+			Parent = Grid,
+			ThemeTag = { BackgroundColor3 = "DropdownFrame" },
+		}, {
+			scale,
+			New("UIAspectRatioConstraint", { AspectRatio = AspectRatio }),
+			New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+			media,
+			New("Frame", {
+				AnchorPoint = Vector2.new(0, 1),
+				Position = UDim2.fromScale(0, 1),
+				Size = UDim2.new(1, 0, 0, 34),
+				BackgroundColor3 = Color3.new(0, 0, 0),
+				BorderSizePixel = 0,
+				ZIndex = 2,
+			}, {
+				New("UIGradient", {
+					Rotation = 90,
+					Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0.25) }),
+				}),
+				New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+				New("TextLabel", {
+					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold),
+					Text = item.Text or "",
+					TextSize = 14,
+					TextColor3 = Color3.new(1, 1, 1),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					BackgroundTransparency = 1,
+					Position = UDim2.fromOffset(10, 8),
+					Size = UDim2.new(1, -80, 1, -10),
+					ZIndex = 3,
+				}),
+				New("TextLabel", {
+					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold),
+					Text = item.Badge or "",
+					Visible = item.Badge ~= nil and item.Badge ~= "",
+					TextSize = 11,
+					AutomaticSize = Enum.AutomaticSize.X,
+					Size = UDim2.fromOffset(0, 18),
+					AnchorPoint = Vector2.new(1, 1),
+					Position = UDim2.new(1, -8, 1, -6),
+					BackgroundTransparency = 0.1,
+					ZIndex = 3,
+					ThemeTag = { BackgroundColor3 = "Accent", TextColor3 = "Text" },
+				}, {
+					New("UICorner", { CornerRadius = UDim.new(0, 4) }),
+					New("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5) }),
+				}),
+			}),
+		})
+		task.delay(0.03 * index, function()
+			TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		end)
+		if Config.Callback then
+			Creator.AddSignal(holder.InputBegan, function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					Library:SafeCallback(Config.Callback, index, item)
+				end
+			end)
+		end
+	end
+
 	local function tile(index, item)
+		if FullWidth then return wideTile(index, item) end
 		local scale = New("UIScale", { Scale = 0.8 })
 		local media = item.Model and viewport(item.Model, TileSize) or New("ImageLabel", {
 			Size = UDim2.fromOffset(TileSize, TileSize),
@@ -3632,7 +3716,7 @@ function Element:New(Idx, Config)
 	function Gallery:SetItems(Items)
 		Gallery.Items = Items or {}
 		for _, child in ipairs(Grid:GetChildren()) do
-			if child:IsA("TextButton") then child:Destroy() end
+			if child:IsA("GuiObject") then child:Destroy() end
 		end
 		for index, item in ipairs(Gallery.Items) do tile(index, item) end
 	end
