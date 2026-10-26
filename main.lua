@@ -3588,7 +3588,6 @@ function Element:New(Idx, Config)
 			ThemeTag = { BackgroundColor3 = "DropdownFrame" },
 		}, {
 			scale,
-			New("UIAspectRatioConstraint", { AspectRatio = AspectRatio }),
 			New("UICorner", { CornerRadius = UDim.new(0, 6) }),
 			media,
 			New("Frame", {
@@ -3634,6 +3633,12 @@ function Element:New(Idx, Config)
 				}),
 			}),
 		})
+		-- height follows the width (an aspect constraint would fit inside the 0px starting height)
+		local function fit()
+			holder.Size = UDim2.new(1, -2, 0, math.floor(math.max(Grid.AbsoluteSize.X - 2, 0) / AspectRatio))
+		end
+		fit()
+		Creator.AddSignal(Grid:GetPropertyChangedSignal("AbsoluteSize"), fit)
 		task.delay(0.03 * index, function()
 			TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 		end)
