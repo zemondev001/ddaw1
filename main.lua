@@ -62,41 +62,43 @@ node(8, "Assets", "ModuleScript", 7)
 node(9, "Button", "ModuleScript", 7)
 node(10, "Dialog", "ModuleScript", 7)
 node(11, "Element", "ModuleScript", 7)
-node(12, "Notification", "ModuleScript", 7)
-node(13, "Section", "ModuleScript", 7)
-node(14, "Tab", "ModuleScript", 7)
-node(15, "Textbox", "ModuleScript", 7)
-node(16, "TitleBar", "ModuleScript", 7)
-node(17, "Window", "ModuleScript", 7)
-node(18, "Creator", "ModuleScript", 1)
-node(19, "Elements", "ModuleScript", 1)
-node(20, "Button", "ModuleScript", 19)
-node(21, "Colorpicker", "ModuleScript", 19)
-node(22, "Dropdown", "ModuleScript", 19)
-node(23, "Gallery", "ModuleScript", 19)
-node(24, "Input", "ModuleScript", 19)
-node(25, "Keybind", "ModuleScript", 19)
-node(26, "Paragraph", "ModuleScript", 19)
-node(27, "Slider", "ModuleScript", 19)
-node(28, "Toggle", "ModuleScript", 19)
-node(29, "Icons", "ModuleScript", 1)
-node(30, "Packages", "Folder", 1)
-node(31, "Flipper", "ModuleScript", 30)
-node(32, "BaseMotor", "ModuleScript", 31)
-node(33, "GroupMotor", "ModuleScript", 31)
-node(34, "Instant", "ModuleScript", 31)
-node(35, "Linear", "ModuleScript", 31)
-node(36, "Signal", "ModuleScript", 31)
-node(37, "SingleMotor", "ModuleScript", 31)
-node(38, "Spring", "ModuleScript", 31)
-node(39, "isMotor", "ModuleScript", 31)
-node(40, "Themes", "ModuleScript", 1)
-node(41, "Amethyst", "ModuleScript", 40)
-node(42, "Aqua", "ModuleScript", 40)
-node(43, "Dark", "ModuleScript", 40)
-node(44, "Darker", "ModuleScript", 40)
-node(45, "Light", "ModuleScript", 40)
-node(46, "Rose", "ModuleScript", 40)
+node(12, "Festive", "ModuleScript", 7)
+node(13, "Notification", "ModuleScript", 7)
+node(14, "Section", "ModuleScript", 7)
+node(15, "Tab", "ModuleScript", 7)
+node(16, "Textbox", "ModuleScript", 7)
+node(17, "TitleBar", "ModuleScript", 7)
+node(18, "Window", "ModuleScript", 7)
+node(19, "Creator", "ModuleScript", 1)
+node(20, "Elements", "ModuleScript", 1)
+node(21, "Button", "ModuleScript", 20)
+node(22, "Colorpicker", "ModuleScript", 20)
+node(23, "Dropdown", "ModuleScript", 20)
+node(24, "Gallery", "ModuleScript", 20)
+node(25, "Input", "ModuleScript", 20)
+node(26, "Keybind", "ModuleScript", 20)
+node(27, "Paragraph", "ModuleScript", 20)
+node(28, "Reorder", "ModuleScript", 20)
+node(29, "Slider", "ModuleScript", 20)
+node(30, "Toggle", "ModuleScript", 20)
+node(31, "Icons", "ModuleScript", 1)
+node(32, "Packages", "Folder", 1)
+node(33, "Flipper", "ModuleScript", 32)
+node(34, "BaseMotor", "ModuleScript", 33)
+node(35, "GroupMotor", "ModuleScript", 33)
+node(36, "Instant", "ModuleScript", 33)
+node(37, "Linear", "ModuleScript", 33)
+node(38, "Signal", "ModuleScript", 33)
+node(39, "SingleMotor", "ModuleScript", 33)
+node(40, "Spring", "ModuleScript", 33)
+node(41, "isMotor", "ModuleScript", 33)
+node(42, "Themes", "ModuleScript", 1)
+node(43, "Amethyst", "ModuleScript", 42)
+node(44, "Aqua", "ModuleScript", 42)
+node(45, "Dark", "ModuleScript", 42)
+node(46, "Darker", "ModuleScript", 42)
+node(47, "Light", "ModuleScript", 42)
+node(48, "Rose", "ModuleScript", 42)
 Sources[1] = function(script)
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
@@ -128,6 +130,7 @@ local Library = {
 	OpenFrames = {},
 	Options = {},
 	Themes = require(Root.Themes).Names,
+	ThemeColors = {}, -- theme name -> { background, accent } (swatches in a theme picker)
 
 	Window = nil,
 	WindowFrame = nil,
@@ -205,6 +208,10 @@ for _, ElementComponent in ipairs(ElementsTable) do
 end
 
 Library.Elements = Elements
+for _, Name in ipairs(Library.Themes) do
+	local Theme = require(Root.Themes)[Name]
+	Library.ThemeColors[Name] = { Theme.AcrylicGradient and Theme.AcrylicGradient.Keypoints[1].Value or Theme.AcrylicMain, Theme.Accent }
+end
 
 function Library:CreateWindow(Config)
 	assert(Config.Title, "Window - Missing Title")
@@ -236,10 +243,106 @@ function Library:CreateWindow(Config)
 	return Window
 end
 
+function Library:GetAccent()
+	local Theme = require(Root.Themes)[Library.Theme]
+	return Theme and Theme.Accent
+end
+
 function Library:SetTheme(Value)
-	if Library.Window and table.find(Library.Themes, Value) then
+	if Library.Window and require(Root.Themes)[Value] then
 		Library.Theme = Value
 		Creator.UpdateTheme()
+	end
+end
+
+-- festivals: a theme and a badge from 5 days before to 5 days after the day
+-- shortcut: Lunar New Year and Loy Krathong follow the moon, dates listed to 2028; add more years then
+Library.Festivals = {
+	{ Name = "Halloween", Decor = { Webs = true, Spider = true, Pumpkins = true }, Theme = "Halloween", Emoji = "🎃", Text = "Happy Halloween", Date = function() return 10, 31 end },
+	{ Name = "Christmas", Decor = { Snow = true }, Theme = "Christmas", Emoji = "🎄", Text = "Merry Christmas", Date = function() return 12, 25 end },
+	{ Name = "New Year", Decor = { Fireworks = true }, Theme = "New Year", Emoji = "🎆", Text = "Happy New Year", Date = function() return 1, 1 end },
+	{ Name = "Valentine", Decor = { Hearts = true }, Theme = "Valentine", Emoji = "💘", Text = "Happy Valentine's", Date = function() return 2, 14 end },
+	{ Name = "Songkran", Decor = { Drops = true, Flowers = true }, Theme = "Songkran", Emoji = "💦", Text = "Happy Songkran", Date = function() return 4, 13 end },
+	{ Name = "Lunar New Year", Decor = { Lanterns = true }, Theme = "Lunar New Year", Emoji = "🧧", Text = "Happy Lunar New Year", Date = function(Year)
+		local Days = { [2026] = { 2, 17 }, [2027] = { 2, 6 }, [2028] = { 1, 26 } }
+		if Days[Year] then return Days[Year][1], Days[Year][2] end
+	end },
+	{ Name = "Loy Krathong", Decor = { Krathong = true, Moon = true }, Theme = "Loy Krathong", Emoji = "🏮", Text = "Happy Loy Krathong", Date = function(Year)
+		local Days = { [2026] = { 11, 24 }, [2027] = { 11, 13 }, [2028] = { 11, 2 } }
+		if Days[Year] then return Days[Year][1], Days[Year][2] end
+	end },
+}
+
+function Library:CurrentFestival(Now)
+	Now = Now or os.time()
+	local Year = os.date("*t", Now).year
+	local Best, BestGap
+	for _, Festival in ipairs(Library.Festivals) do
+		for Y = Year - 1, Year + 1 do -- New Year's window crosses the year
+			local Month, Day = Festival.Date(Y)
+			if Month then
+				local Gap = math.abs(os.difftime(Now, os.time({ year = Y, month = Month, day = Day, hour = 12 }))) / 86400
+				if Gap <= 5.5 and (not BestGap or Gap < BestGap) then Best, BestGap = Festival, Gap end
+			end
+		end
+	end
+	return Best
+end
+
+-- Festival = an entry of Library.Festivals (its theme + a badge under the title), or nil to remove the badge
+function Library:SetFestival(Festival)
+	local Window = Library.Window
+	if not Window then return end
+	for _, Name in ipairs({ "FestivalBadge", "FestivalDecor" }) do
+		local Old = Window.Root:FindFirstChild(Name)
+		if Old then Old:Destroy() end
+	end
+	if Library.FestivalGlow then
+		Library.FestivalGlow:Cancel()
+		Library.FestivalGlow = nil
+		for _, Child in ipairs(Window.AcrylicPaint.Frame:GetDescendants()) do
+			if Child:IsA("UIStroke") then
+				Creator.AddThemeObject(Child, { Color = "AcrylicBorder" })
+				Child.Thickness, Child.Transparency = 1, 0.5
+			end
+		end
+	end
+	if not Festival then return end
+	Library:SetTheme(Festival.Theme)
+	Badge = Creator.New("TextLabel", {
+		Name = "FestivalBadge",
+		Text = Festival.Emoji .. "  " .. Festival.Text,
+		FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold),
+		TextSize = 12,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 22),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -16, 0, 55),
+		BackgroundTransparency = 0.8,
+		Parent = Window.Root,
+		ThemeTag = { BackgroundColor3 = "Accent", TextColor3 = "Text" },
+	}, {
+		Creator.New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		Creator.New("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }),
+		Creator.New("UIStroke", { Transparency = 0.5, ThemeTag = { Color = "Accent" } }),
+	})
+	Library:FestivalDecor(Festival)
+end
+
+-- decorations around the window's edges (Components.Festive) and a breathing accent border
+function Library:FestivalDecor(Festival)
+	local TweenService = game:GetService("TweenService")
+	local Window = Library.Window
+	require(Components.Festive)(Window, Festival.Decor or {})
+	local Stroke
+	for _, Child in ipairs(Window.AcrylicPaint.Frame:GetDescendants()) do
+		if Child:IsA("UIStroke") then Stroke = Child end
+	end
+	if Stroke then
+		Creator.AddThemeObject(Stroke, { Color = "Accent" })
+		Stroke.Thickness = 1.5
+		Library.FestivalGlow = TweenService:Create(Stroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Transparency = 0.1 })
+		Library.FestivalGlow:Play()
 	end
 end
 
@@ -491,7 +594,8 @@ return function(props)
 		}),
 
 		New("Frame", {
-			BackgroundTransparency = 0.45,
+			-- no blur behind it: almost solid, so the game does not show through the text
+			BackgroundTransparency = require(script.Parent.Parent).UseAcrylic and 0.45 or 0.08,
 			Size = UDim2.fromScale(1, 1),
 			Name = "Background",
 			ThemeTag = {
@@ -893,17 +997,27 @@ local Creator = require(Root.Creator)
 local New = Creator.New
 
 local Spring = Flipper.Spring.new
+local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
+local OpenBox
 
-return function(Title, Desc, Parent, Hover)
+-- AsTooltip: the description is hidden behind a small "i" button; clicking it opens the text as a
+-- small box under the title (click again to collapse). Used by interactive elements so a screen
+-- full of widgets isn't a screen full of description text; Paragraph/Gallery keep it visible.
+return function(Title, Desc, Parent, Hover, AsTooltip, ControlInset)
 	local Element = {}
+	local Expanded = false
+
+	local HasTooltip = AsTooltip and Desc and Desc ~= ""
 
 	Element.TitleLabel = New("TextLabel", {
 		FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
 		Text = Title,
 		TextColor3 = Color3.fromRGB(240, 240, 240),
 		TextSize = 13,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Size = UDim2.new(1, 0, 0, 14),
+		Size = AsTooltip and UDim2.fromOffset(10, 14) or UDim2.new(1, 0, 0, 14),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = 1,
 		ThemeTag = {
@@ -920,12 +1034,147 @@ return function(Title, Desc, Parent, Hover)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 14),
-		ThemeTag = {
+		BackgroundTransparency = AsTooltip and 0.02 or 1,
+		Visible = not AsTooltip,
+		Active = AsTooltip and true or false,
+		ZIndex = AsTooltip and 20 or 1,
+		Size = AsTooltip and UDim2.new(1, -20, 0, 14) or UDim2.new(1, 0, 0, 14),
+		ThemeTag = AsTooltip and {
+			TextColor3 = "Text",
+			BackgroundColor3 = "DropdownHolder",
+		} or {
 			TextColor3 = "SubText",
 		},
-	})
+	}, AsTooltip and {
+		New("UICorner", { CornerRadius = UDim.new(0, 4) }),
+		New("UIStroke", { Transparency = 0.4, ThemeTag = { Color = "DropdownBorder" } }),
+		New("UIPadding", {
+			PaddingLeft = UDim.new(0, 8),
+			PaddingRight = UDim.new(0, 8),
+			PaddingTop = UDim.new(0, 6),
+			PaddingBottom = UDim.new(0, 6),
+		}),
+	} or nil)
+
+	if AsTooltip then
+		Element.TitleRow = New("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, -math.max((ControlInset or 0) - 18, 0), 0, 16),
+		}, {
+			New("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				Padding = UDim.new(0, 6),
+			}),
+		})
+		Element.TitleLabel.LayoutOrder = 1
+		Element.TitleLabel.Parent = Element.TitleRow
+
+		Element.InfoIcon = New("TextButton", {
+			Name = "InfoIcon",
+			Visible = HasTooltip,
+			LayoutOrder = 2,
+			Size = UDim2.fromOffset(16, 16),
+			Text = "i",
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Italic),
+			TextSize = 12,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			BackgroundTransparency = 0.45,
+			Parent = Element.TitleRow,
+			ThemeTag = {
+				BackgroundColor3 = "Accent",
+			},
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		})
+
+		local function Fit()
+			local room = Element.TitleRow.AbsoluteSize.X - (HasTooltip and 22 or 0)
+			if room <= 0 then return end
+			local width = game:GetService("TextService"):GetTextSize(Element.TitleLabel.Text, 13, Enum.Font.GothamMedium, Vector2.new(10000, 14)).X
+			Element.TitleLabel.Size = UDim2.fromOffset(math.clamp(width + 4, 10, room), 14)
+		end
+		Creator.AddSignal(Element.TitleRow:GetPropertyChangedSignal("AbsoluteSize"), Fit)
+		Creator.AddSignal(Element.TitleLabel:GetPropertyChangedSignal("Text"), Fit)
+
+		local Raised = {}
+		local Hovering = false
+		local PressWatch
+		local function Inside(Object, Position)
+			local Min, Size = Object.AbsolutePosition, Object.AbsoluteSize
+			local Inset = GuiService:GetGuiInset().Y
+			if Position.X < Min.X or Position.X > Min.X + Size.X then return false end
+			return (Position.Y >= Min.Y and Position.Y <= Min.Y + Size.Y) or (Position.Y - Inset >= Min.Y and Position.Y - Inset <= Min.Y + Size.Y)
+		end
+		local function Collapse()
+			if OpenBox == Collapse then OpenBox = nil end
+			if PressWatch then
+				PressWatch:Disconnect()
+				PressWatch = nil
+			end
+			Expanded = false
+			Element.DescLabel.Visible = false
+			Element.InfoIcon.BackgroundTransparency = 0.45
+			for Object, ZIndex in next, Raised do
+				Object.ZIndex = ZIndex
+			end
+			Raised = {}
+		end
+		local function Open()
+			if Expanded then return end
+			if OpenBox then OpenBox() end
+			OpenBox = Collapse
+			Expanded = true
+			Element.InfoIcon.BackgroundTransparency = 0
+			local Scroll = Element.Frame:FindFirstAncestorOfClass("ScrollingFrame")
+			local Width = math.max(Element.Frame.AbsoluteSize.X - 20, 60)
+			local Text = game:GetService("TextService"):GetTextSize(Element.DescLabel.Text, 12, Enum.Font.Gotham, Vector2.new(Width - 16, 10000))
+			local Height = Text.Y + 14
+			local Up = false
+			if Scroll then
+				local RowBottom = Element.Frame.AbsolutePosition.Y + Element.Frame.AbsoluteSize.Y
+				local Room = Scroll.AbsolutePosition.Y + Scroll.AbsoluteSize.Y - RowBottom
+				Up = Room < Height + 12 and Element.Frame.AbsolutePosition.Y - Scroll.AbsolutePosition.Y > Room
+			end
+			Element.DescLabel.AutomaticSize = Enum.AutomaticSize.None
+			Element.DescLabel.Size = UDim2.new(1, -20, 0, Height)
+			Element.DescAnchor.Position = UDim2.fromScale(0, Up and 0 or 1)
+			Element.DescLabel.AnchorPoint = Vector2.new(0, Up and 1 or 0)
+			Element.DescLabel.Position = UDim2.fromOffset(10, Up and -4 or 4)
+			Element.DescLabel.Visible = true
+			local Object = Element.Frame
+			while Object and Object ~= Scroll and Object:IsA("GuiObject") do
+				Raised[Object] = Object.ZIndex
+				Object.ZIndex = 10
+				Object = Object.Parent
+			end
+			PressWatch = UserInputService.InputBegan:Connect(function(Input)
+				if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.Touch then return end
+				if Inside(Element.InfoIcon, Input.Position) or Inside(Element.DescLabel, Input.Position) then return end
+				Collapse()
+			end)
+		end
+
+		Creator.AddSignal(Element.InfoIcon.MouseButton1Click, function()
+			if Expanded then Collapse() else Open() end
+		end)
+
+		local function Away()
+			Hovering = false
+			task.delay(0.2, function()
+				if Expanded and not Hovering and UserInputService:GetLastInputType() ~= Enum.UserInputType.Touch then Collapse() end
+			end)
+		end
+		for _, Object in next, { Element.InfoIcon, Element.DescLabel } do
+			Creator.AddSignal(Object.MouseEnter, function()
+				Hovering = true
+				if Object == Element.InfoIcon and UserInputService:GetLastInputType() ~= Enum.UserInputType.Touch then Open() end
+			end)
+			Creator.AddSignal(Object.MouseLeave, Away)
+		end
+		Element.Collapse = Collapse
+	end
 
 	Element.LabelHolder = New("Frame", {
 		AutomaticSize = Enum.AutomaticSize.Y,
@@ -942,8 +1191,8 @@ return function(Title, Desc, Parent, Hover)
 			PaddingBottom = UDim.new(0, 13),
 			PaddingTop = UDim.new(0, 13),
 		}),
-		Element.TitleLabel,
-		Element.DescLabel,
+		Element.TitleRow or Element.TitleLabel,
+		not AsTooltip and Element.DescLabel or nil,
 	})
 
 	Element.Border = New("UIStroke", {
@@ -975,6 +1224,18 @@ return function(Title, Desc, Parent, Hover)
 		Element.LabelHolder,
 	})
 
+	if AsTooltip then
+		Element.DescAnchor = New("Frame", {
+			Name = "DescAnchor",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 0),
+			Position = UDim2.fromScale(0, 1),
+			Parent = Element.Frame,
+		})
+		Element.DescLabel.Parent = Element.DescAnchor
+		Creator.AddSignal(Element.Frame.Destroying, Element.Collapse)
+	end
+
 	function Element:SetTitle(Set)
 		Element.TitleLabel.Text = Set
 	end
@@ -983,12 +1244,17 @@ return function(Title, Desc, Parent, Hover)
 		if Set == nil then
 			Set = ""
 		end
-		if Set == "" then
-			Element.DescLabel.Visible = false
-		else
-			Element.DescLabel.Visible = true
-		end
 		Element.DescLabel.Text = Set
+		if AsTooltip then
+			if Element.InfoIcon then
+				Element.InfoIcon.Visible = Set ~= ""
+			end
+			if Set == "" and Element.Collapse then
+				Element.Collapse()
+			end
+			return
+		end
+		Element.DescLabel.Visible = Set ~= ""
 	end
 
 	function Element:Destroy()
@@ -1027,6 +1293,306 @@ end
 
 end
 Sources[12] = function(script)
+-- festival decorations drawn around the window's edges: spider webs in the corners, a spider on a thread,
+-- a snow cap on the top edge and a string of blinking lights. Built from plain frames, clicks pass through.
+local TweenService = game:GetService("TweenService")
+
+local Root = script.Parent.Parent
+local Creator = require(Root.Creator)
+local New = Creator.New
+
+local Z = 60
+
+local function Line(Parent, A, B, Thickness, Color, Transparency)
+	local Delta = B - A
+	return New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset((A.X + B.X) / 2, (A.Y + B.Y) / 2),
+		Size = UDim2.fromOffset(Delta.Magnitude + 1, Thickness),
+		Rotation = math.deg(math.atan2(Delta.Y, Delta.X)),
+		BackgroundColor3 = Color,
+		BackgroundTransparency = Transparency,
+		ZIndex = Z,
+		Parent = Parent,
+	})
+end
+
+local function Dot(Parent, Center, Size, Color, Transparency)
+	return New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(Center.X, Center.Y),
+		Size = UDim2.fromOffset(Size.X, Size.Y),
+		BackgroundColor3 = Color,
+		BackgroundTransparency = Transparency or 0,
+		ZIndex = Z + 1,
+		Parent = Parent,
+	}, {
+		New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+	})
+end
+
+-- a corner web: spokes from the corner, rings joined spoke to spoke with a slight sag toward the corner
+local function Web(Parent, Origin, Radius, From, To)
+	local Color, Spokes, Rings = Color3.fromRGB(225, 225, 235), 6, 4
+	local Points = {}
+	for S = 0, Spokes do
+		local Angle = math.rad(From + (To - From) * S / Spokes)
+		local Direction = Vector2.new(math.cos(Angle), math.sin(Angle))
+		Line(Parent, Origin, Origin + Direction * Radius, 1, Color, 0.45)
+		Points[S] = Direction
+	end
+	for R = 1, Rings do
+		local Distance = Radius * R / (Rings + 0.4)
+		for S = 0, Spokes - 1 do
+			local A, B = Origin + Points[S] * Distance, Origin + Points[S + 1] * Distance
+			local Middle = Origin + ((A + B) / 2 - Origin) * 0.9
+			Line(Parent, A, Middle, 1, Color, 0.55)
+			Line(Parent, Middle, B, 1, Color, 0.55)
+		end
+	end
+end
+
+local function Spider(Parent, X, Length)
+	local Holder = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(30, Length + 24), Position = UDim2.fromOffset(X - 15, 0), ZIndex = Z, Parent = Parent })
+	local Thread = New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromOffset(15, 0), Size = UDim2.fromOffset(1, Length),
+		BackgroundColor3 = Color3.fromRGB(225, 225, 235), BackgroundTransparency = 0.4, ZIndex = Z, Parent = Holder,
+	})
+	local Body = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(30, 24), Position = UDim2.fromOffset(0, Length - 4), ZIndex = Z, Parent = Holder })
+	local Black = Color3.fromRGB(20, 16, 22)
+	for Side = -1, 1, 2 do
+		for Leg = 0, 3 do
+			local Start = Vector2.new(15, 12)
+			local Knee = Start + Vector2.new(Side * 7, -5 + Leg * 3)
+			local Foot = Knee + Vector2.new(Side * 4, 3 + Leg * 1.5)
+			Line(Body, Start, Knee, 1.5, Black, 0)
+			Line(Body, Knee, Foot, 1.5, Black, 0)
+		end
+	end
+	Dot(Body, Vector2.new(15, 14), Vector2.new(11, 12), Black)
+	Dot(Body, Vector2.new(15, 7), Vector2.new(7, 7), Black)
+	Dot(Body, Vector2.new(13.5, 6.5), Vector2.new(2, 2), Color3.fromRGB(255, 80, 60))
+	Dot(Body, Vector2.new(16.5, 6.5), Vector2.new(2, 2), Color3.fromRGB(255, 80, 60))
+	local Bob = TweenInfo.new(2.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+	TweenService:Create(Thread, Bob, { Size = UDim2.fromOffset(1, Length + 18) }):Play()
+	TweenService:Create(Body, Bob, { Position = UDim2.fromOffset(0, Length + 14) }):Play()
+end
+
+-- snow piled on the top edge, thicker in the middle of each heap
+local function SnowCap(Parent, Width)
+	local White = Color3.fromRGB(250, 252, 255)
+	local X = 6
+	while X < Width - 6 do
+		local Size = math.random(8, 14)
+		Dot(Parent, Vector2.new(X, 1), Vector2.new(Size * 1.7, Size), White, 0.08)
+		X = X + Size * 1.3
+	end
+	for _ = 1, math.floor(Width / 60) do -- small drips hanging below
+		local Drip = math.random(14, math.floor(Width) - 14)
+		Dot(Parent, Vector2.new(Drip, 8), Vector2.new(4, math.random(6, 10)), White, 0.08)
+	end
+end
+
+-- a jack-o'-lantern sitting on an edge: ribbed orange body, stem, glowing face
+local function Pumpkin(Parent, Bottom, Size)
+	local Orange, Dark, Glow = Color3.fromRGB(255, 128, 24), Color3.fromRGB(214, 92, 10), Color3.fromRGB(255, 225, 90)
+	local Center = Bottom - Vector2.new(0, Size * 0.42)
+	New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromOffset(Center.X + Size * 0.04, Center.Y - Size * 0.32),
+		Size = UDim2.fromOffset(Size * 0.12, Size * 0.24), Rotation = 12,
+		BackgroundColor3 = Color3.fromRGB(70, 120, 40), ZIndex = Z, Parent = Parent,
+	}, { New("UICorner", { CornerRadius = UDim.new(0, 2) }) })
+	Dot(Parent, Center - Vector2.new(Size * 0.26, 0), Vector2.new(Size * 0.55, Size * 0.8), Dark)
+	Dot(Parent, Center + Vector2.new(Size * 0.26, 0), Vector2.new(Size * 0.55, Size * 0.8), Dark)
+	Dot(Parent, Center, Vector2.new(Size * 0.6, Size * 0.84), Orange)
+	local Face = {
+		{ Center + Vector2.new(-Size * 0.2, -Size * 0.08), Size * 0.14 },
+		{ Center + Vector2.new(Size * 0.2, -Size * 0.08), Size * 0.14 },
+	}
+	for _, Eye in ipairs(Face) do
+		New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(Eye[1].X, Eye[1].Y), Size = UDim2.fromOffset(Eye[2], Eye[2]),
+			Rotation = 45, BackgroundColor3 = Glow, ZIndex = Z + 2, Parent = Parent,
+		})
+	end
+	local Mouth = New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(Center.X, Center.Y + Size * 0.16),
+		Size = UDim2.fromOffset(Size * 0.5, Size * 0.12), BackgroundColor3 = Glow, ZIndex = Z + 2, Parent = Parent,
+	}, { New("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	TweenService:Create(Mouth, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = Color3.fromRGB(255, 170, 40) }):Play()
+end
+
+-- something hanging from the top edge on a thread, swinging gently around the hook
+local function Hanging(Parent, X, Length, Width, Draw)
+	local Height = Length + Width * 1.6
+	-- a frame turns around its centre: a holder twice as tall with the hook in the middle keeps the hook still
+	local Swing = New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(X, 0), Size = UDim2.fromOffset(Width, Height * 2),
+		BackgroundTransparency = 1, Rotation = -6, ZIndex = Z, Parent = Parent,
+	})
+	local Pivot = New("Frame", {
+		Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(Width, Height), BackgroundTransparency = 1, ZIndex = Z, Parent = Swing,
+	})
+	New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 0), Size = UDim2.fromOffset(1, Length),
+		BackgroundColor3 = Color3.fromRGB(225, 225, 235), BackgroundTransparency = 0.4, ZIndex = Z, Parent = Pivot,
+	})
+	Draw(Pivot, Vector2.new(Width / 2, Length))
+	TweenService:Create(Swing, TweenInfo.new(1.8 + math.random() * 0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Rotation = 6 }):Play()
+end
+
+local function Heart(Parent, Top, Size, Color)
+	local Center = Top + Vector2.new(0, Size * 0.55)
+	New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(Center.X, Center.Y), Size = UDim2.fromOffset(Size * 0.62, Size * 0.62),
+		Rotation = 45, BackgroundColor3 = Color, ZIndex = Z + 1, Parent = Parent,
+	}, { New("UICorner", { CornerRadius = UDim.new(0, 2) }) })
+	Dot(Parent, Center + Vector2.new(-Size * 0.22, -Size * 0.2), Vector2.new(Size * 0.5, Size * 0.5), Color)
+	Dot(Parent, Center + Vector2.new(Size * 0.22, -Size * 0.2), Vector2.new(Size * 0.5, Size * 0.5), Color)
+end
+
+local function Lantern(Parent, Top, Size)
+	local Red, Gold = Color3.fromRGB(220, 30, 35), Color3.fromRGB(255, 196, 60)
+	local Body = Top + Vector2.new(0, Size * 0.6)
+	New("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(Top.X, Top.Y + 2), Size = UDim2.fromOffset(Size * 0.5, 4), BackgroundColor3 = Gold, ZIndex = Z + 2, Parent = Parent })
+	local Shell = Dot(Parent, Body, Vector2.new(Size, Size * 0.85), Red)
+	New("UIStroke", { Color = Color3.fromRGB(255, 120, 60), Thickness = 2, Transparency = 0.4, Parent = Shell })
+	for _, Offset in ipairs({ -0.22, 0, 0.22 }) do
+		local Rib = Line(Parent, Body + Vector2.new(Size * Offset, -Size * 0.36), Body + Vector2.new(Size * Offset, Size * 0.36), 1, Color3.fromRGB(150, 15, 20), 0.2)
+		Rib.ZIndex = Z + 2
+	end
+	New("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(Body.X, Body.Y + Size * 0.45), Size = UDim2.fromOffset(Size * 0.5, 4), BackgroundColor3 = Gold, ZIndex = Z + 2, Parent = Parent })
+	Line(Parent, Body + Vector2.new(0, Size * 0.47), Body + Vector2.new(0, Size * 0.9), 2, Gold, 0)
+end
+
+-- a firework that bursts, fades and bursts again
+local function Firework(Parent, Center, Radius, Color, Delay)
+	local Burst = New("CanvasGroup", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(Center.X, Center.Y), Size = UDim2.fromOffset(Radius * 2, Radius * 2),
+		BackgroundTransparency = 1, GroupTransparency = 1, ZIndex = Z, Parent = Parent,
+	})
+	local Scale = New("UIScale", { Scale = 0.2, Parent = Burst })
+	local Middle = Vector2.new(Radius, Radius)
+	for Ray = 0, 11 do
+		local Direction = Vector2.new(math.cos(Ray * math.pi / 6), math.sin(Ray * math.pi / 6))
+		Line(Burst, Middle + Direction * Radius * 0.35, Middle + Direction * Radius * 0.85, 2, Color, 0)
+		Dot(Burst, Middle + Direction * Radius * 0.92, Vector2.new(4, 4), Color3.new(1, 1, 1))
+	end
+	task.spawn(function()
+		task.wait(Delay)
+		while Burst.Parent do
+			Scale.Scale, Burst.GroupTransparency = 0.2, 0
+			TweenService:Create(Scale, TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+			task.wait(0.5)
+			TweenService:Create(Burst, TweenInfo.new(0.9), { GroupTransparency = 1 }):Play()
+			task.wait(1.6 + math.random() * 1.2)
+		end
+	end)
+end
+
+-- water drops falling from the top edge, one after another
+local function Drops(Parent, Width)
+	for I = 1, 7 do
+		local Drop = Dot(Parent, Vector2.new(0, 0), Vector2.new(6, 9), Color3.fromRGB(110, 210, 255), 1)
+		task.spawn(function()
+			task.wait(I * 0.6)
+			while Drop.Parent do
+				local X = math.random(20, math.floor(Width) - 20)
+				Drop.Position, Drop.BackgroundTransparency = UDim2.fromOffset(X, 4), 0.1
+				local Fall = TweenService:Create(Drop, TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = UDim2.fromOffset(X, 70), BackgroundTransparency = 1 })
+				Fall:Play()
+				Fall.Completed:Wait()
+				task.wait(math.random() * 1.5)
+			end
+		end)
+	end
+end
+
+local function Flower(Parent, Center, Size, Color)
+	for Petal = 0, 4 do
+		local Angle = Petal * math.pi * 2 / 5
+		Dot(Parent, Center + Vector2.new(math.cos(Angle), math.sin(Angle)) * Size * 0.3, Vector2.new(Size * 0.45, Size * 0.45), Color)
+	end
+	local Middle = Dot(Parent, Center, Vector2.new(Size * 0.3, Size * 0.3), Color3.fromRGB(255, 200, 50))
+	Middle.ZIndex = Z + 2
+end
+
+-- a krathong floating on the bottom edge: banana-leaf base, lotus petals, candle with a flickering flame
+local function Krathong(Parent, Bottom, Size)
+	local Holder = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(Size * 1.4, Size * 1.4), AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromOffset(Bottom.X, Bottom.Y), ZIndex = Z, Parent = Parent })
+	local Base = Vector2.new(Size * 0.7, Size * 1.2)
+	for I = -2, 2 do
+		New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromOffset(Base.X + I * Size * 0.17, Base.Y - Size * 0.12), Size = UDim2.fromOffset(Size * 0.24, Size * 0.48),
+			Rotation = I * 16, BackgroundColor3 = I % 2 == 0 and Color3.fromRGB(255, 170, 200) or Color3.fromRGB(255, 225, 235), ZIndex = Z + 1, Parent = Holder,
+		}, { New("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	end
+	local Leaf = Dot(Holder, Base, Vector2.new(Size * 1.25, Size * 0.4), Color3.fromRGB(60, 140, 60))
+	Leaf.ZIndex = Z + 2
+	New("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromOffset(Base.X, Base.Y - Size * 0.4), Size = UDim2.fromOffset(3, Size * 0.4), BackgroundColor3 = Color3.fromRGB(255, 240, 200), ZIndex = Z + 2, Parent = Holder })
+	local Flame = Dot(Holder, Vector2.new(Base.X, Base.Y - Size * 0.86), Vector2.new(6, 9), Color3.fromRGB(255, 190, 60))
+	Flame.ZIndex = Z + 3
+	New("UIStroke", { Color = Color3.fromRGB(255, 120, 30), Thickness = 2, Transparency = 0.3, Parent = Flame })
+	TweenService:Create(Flame, TweenInfo.new(0.35, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Size = UDim2.fromOffset(5, 11) }):Play()
+	TweenService:Create(Holder, TweenInfo.new(2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Position = UDim2.fromOffset(Bottom.X + 6, Bottom.Y - 3), Rotation = 4 }):Play()
+end
+
+-- Decor = { Webs, Spider, Pumpkins, Snow, Fireworks, Hearts, Lanterns, Drops, Flowers, Krathong, Moon = true }
+return function(Window, Decor)
+	local Holder = New("Frame", { Name = "FestivalDecor", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = Z, Parent = Window.Root })
+	local Built
+	local function Build()
+		local Size = Window.Root.AbsoluteSize
+		if Size.X < 50 or Built == Size then return end
+		Built = Size
+		Holder:ClearAllChildren()
+		if Decor.Snow then SnowCap(Holder, Size.X) end
+		if Decor.Pumpkins then
+			Pumpkin(Holder, Vector2.new(34, Size.Y + 6), 40)
+			Pumpkin(Holder, Vector2.new(66, Size.Y + 5), 26)
+		end
+		if Decor.Webs then
+			Web(Holder, Vector2.new(0, 0), 64, 0, 90)
+			Web(Holder, Vector2.new(Size.X, Size.Y), 52, 180, 270)
+		end
+		if Decor.Fireworks then
+			Firework(Holder, Vector2.new(70, 18), 26, Color3.fromRGB(255, 210, 80), 0)
+			Firework(Holder, Vector2.new(Size.X - 150, 14), 20, Color3.fromRGB(120, 200, 255), 0.9)
+			Firework(Holder, Vector2.new(Size.X * 0.55, 10), 16, Color3.fromRGB(255, 110, 170), 1.7)
+		end
+		if Decor.Hearts then
+			local Colors = { Color3.fromRGB(255, 77, 141), Color3.fromRGB(235, 30, 70), Color3.fromRGB(255, 150, 190) }
+			for I, Spot in ipairs({ { 0.34, 30 }, { 0.52, 46 }, { 0.7, 24 } }) do
+				Hanging(Holder, Size.X * Spot[1], Spot[2], 18, function(Parent, Top) Heart(Parent, Top, 18, Colors[I]) end)
+			end
+		end
+		if Decor.Lanterns then
+			Hanging(Holder, 46, 22, 26, function(Parent, Top) Lantern(Parent, Top, 26) end)
+			Hanging(Holder, Size.X - 170, 34, 22, function(Parent, Top) Lantern(Parent, Top, 22) end)
+		end
+		if Decor.Drops then Drops(Holder, Size.X) end
+		if Decor.Flowers then
+			Flower(Holder, Vector2.new(6, Size.Y - 6), 26, Color3.fromRGB(255, 240, 120))
+			Flower(Holder, Vector2.new(28, Size.Y + 2), 18, Color3.fromRGB(255, 255, 255))
+			Flower(Holder, Vector2.new(Size.X - 6, Size.Y - 6), 22, Color3.fromRGB(150, 220, 255))
+		end
+		if Decor.Moon then
+			local Moon = Dot(Holder, Vector2.new(Size.X - 175, 6), Vector2.new(30, 30), Color3.fromRGB(255, 240, 190))
+			New("UIStroke", { Color = Color3.fromRGB(255, 220, 140), Thickness = 4, Transparency = 0.6, Parent = Moon })
+		end
+		if Decor.Krathong then
+			Krathong(Holder, Vector2.new(46, Size.Y + 8), 30)
+			Krathong(Holder, Vector2.new(Size.X - 40, Size.Y + 6), 22)
+		end
+		if Decor.Spider then Spider(Holder, Size.X * 0.62, 46) end
+	end
+	Build()
+	Creator.AddSignal(Window.Root:GetPropertyChangedSignal("AbsoluteSize"), function() task.defer(Build) end)
+	return Holder
+end
+
+end
+Sources[13] = function(script)
 local Root = script.Parent.Parent
 local Flipper = require(Root.Packages.Flipper)
 local Creator = require(Root.Creator)
@@ -1231,7 +1797,7 @@ end
 return Notification
 
 end
-Sources[13] = function(script)
+Sources[14] = function(script)
 local Root = script.Parent.Parent
 local Creator = require(Root.Creator)
 
@@ -1287,7 +1853,7 @@ return function(Title, Parent)
 end
 
 end
-Sources[14] = function(script)
+Sources[15] = function(script)
 local Root = script.Parent.Parent
 local Flipper = require(Root.Packages.Flipper)
 local Creator = require(Root.Creator)
@@ -1296,6 +1862,20 @@ local New = Creator.New
 local Spring = Flipper.Spring.new
 local Instant = Flipper.Instant.new
 local Components = Root.Components
+
+local TweenService = game:GetService("TweenService")
+local FADE = TweenInfo.new(0.18, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local REGULAR = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+local BOLD = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+
+-- selected tab: accent glow behind it, full-strength bold text; the others are dimmed
+local function Paint(Tab, Selected)
+	local Frame = Tab.Frame
+	Frame.TabTitle.FontFace = Selected and BOLD or REGULAR
+	TweenService:Create(Frame.TabTitle, FADE, { TextTransparency = Selected and 0 or 0.35 }):Play()
+	TweenService:Create(Frame.TabIcon, FADE, { ImageTransparency = Selected and 0 or 0.35 }):Play()
+	TweenService:Create(Frame.Glow, FADE, { BackgroundTransparency = Selected and 0.82 or 1 }):Play()
+end
 
 local TabModule = {
 	Window = nil,
@@ -1357,22 +1937,56 @@ function TabModule:New(Title, Icon, Parent)
 			Text = Title,
 			RichText = true,
 			TextColor3 = Color3.fromRGB(255, 255, 255),
-			TextTransparency = 0,
-			FontFace = Font.new(
-				"rbxasset://fonts/families/GothamSSm.json",
-				Enum.FontWeight.Regular,
-				Enum.FontStyle.Normal
-			),
-			TextSize = 12,
+			TextTransparency = 0.35,
+			FontFace = REGULAR,
+			TextSize = 13,
+			TextTruncate = Enum.TextTruncate.AtEnd,
 			TextXAlignment = "Left",
 			TextYAlignment = "Center",
-			Size = UDim2.new(1, -12, 1, 0),
+			Size = UDim2.new(1, -34, 1, 0),
 			BackgroundTransparency = 1,
 			ThemeTag = {
 				TextColor3 = "Text",
 			},
 		}),
+		New("TextLabel", {
+			Name = "TabTag",
+			Visible = false,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -8, 0.5, 0),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, 16),
+			BackgroundTransparency = 0,
+			Text = "",
+			TextSize = 11,
+			FontFace = BOLD,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextXAlignment = Enum.TextXAlignment.Center,
+			ZIndex = 2,
+			ThemeTag = {
+				BackgroundColor3 = "Accent",
+			},
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			New("UIPadding", {
+				PaddingLeft = UDim.new(0, 6),
+				PaddingRight = UDim.new(0, 6),
+			}),
+		}),
+		New("Frame", {
+			Name = "Glow",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			ZIndex = 0,
+			ThemeTag = {
+				BackgroundColor3 = "Accent",
+			},
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+		}),
 		New("ImageLabel", {
+			Name = "TabIcon",
+			ImageTransparency = 0.35,
 			AnchorPoint = Vector2.new(0, 0.5),
 			Size = UDim2.fromOffset(16, 16),
 			Position = UDim2.new(0, 8, 0.5, 0),
@@ -1398,7 +2012,7 @@ function TabModule:New(Title, Icon, Parent)
 		MidImage = "rbxassetid://6889812721",
 		TopImage = "rbxassetid://6276641225",
 		ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255),
-		ScrollBarImageTransparency = 0.95,
+		ScrollBarImageTransparency = 0.75,
 		ScrollBarThickness = 3,
 		BorderSizePixel = 0,
 		CanvasSize = UDim2.fromScale(0, 0),
@@ -1442,7 +2056,7 @@ function TabModule:New(Title, Icon, Parent)
 	Tab.ScrollFrame = Tab.Container
 
 	function Tab:AddSection(SectionTitle)
-		local Section = { Type = "Section" }
+		local Section = { Type = "Section", Tab = Tab }
 
 		local SectionFrame = require(Components.Section)(SectionTitle, Tab.Container)
 		Section.Container = SectionFrame.Container
@@ -1459,6 +2073,17 @@ function TabModule:New(Title, Icon, Parent)
 		if TabModule.SelectedTab == TabIndex then Window.TabDisplay.Text = Text end
 	end
 
+	-- a small pill next to the tab title, e.g. how many of its toggles are on; nil/"" hides it
+	function Tab:SetTag(Text)
+		local TagLabel = Tab.Frame.TabTag
+		if not Text or Text == "" then
+			TagLabel.Visible = false
+		else
+			TagLabel.Visible = true
+			TagLabel.Text = Text
+		end
+	end
+
 	setmetatable(Tab, Elements)
 	return Tab
 end
@@ -1468,12 +2093,11 @@ function TabModule:SelectTab(Tab)
 
 	TabModule.SelectedTab = Tab
 
-	for _, TabObject in next, TabModule.Tabs do
+	for Index, TabObject in next, TabModule.Tabs do
 		TabObject.SetTransparency(1)
-		TabObject.Selected = false
+		TabObject.Selected = Index == Tab
+		Paint(TabObject, Index == Tab)
 	end
-	TabModule.Tabs[Tab].SetTransparency(0.89)
-	TabModule.Tabs[Tab].Selected = true
 
 	Window.TabDisplay.Text = TabModule.Tabs[Tab].Name
 	Window.SelectorPosMotor:setGoal(Spring(TabModule:GetCurrentTabPos(), { frequency = 6 }))
@@ -1498,7 +2122,7 @@ end
 return TabModule
 
 end
-Sources[15] = function(script)
+Sources[16] = function(script)
 local TextService = game:GetService("TextService")
 local Root = script.Parent.Parent
 local Flipper = require(Root.Packages.Flipper)
@@ -1621,7 +2245,7 @@ return function(Parent, Acrylic)
 end
 
 end
-Sources[16] = function(script)
+Sources[17] = function(script)
 local Root = script.Parent.Parent
 local Assets = require(script.Parent.Assets)
 local Creator = require(Root.Creator)
@@ -1781,7 +2405,7 @@ return function(Config)
 end
 
 end
-Sources[17] = function(script)
+Sources[18] = function(script)
 -- i will rewrite this someday
 local UserInputService = game:GetService("UserInputService")
 local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
@@ -1869,11 +2493,11 @@ return function(Config)
 		Text = "Tab",
 		TextTransparency = 0,
 		FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal),
-		TextSize = 28,
+		TextSize = 22,
 		TextXAlignment = "Left",
 		TextYAlignment = "Center",
-		Size = UDim2.new(1, -16, 0, 28),
-		Position = UDim2.fromOffset(Window.TabWidth + 26, 56),
+		Size = UDim2.new(1, -16, 0, 24),
+		Position = UDim2.fromOffset(Window.TabWidth + 26, 54),
 		BackgroundTransparency = 1,
 		ThemeTag = {
 			TextColor3 = "Text",
@@ -1891,8 +2515,8 @@ return function(Config)
 	})
 
 	Window.ContainerCanvas = New("Frame", {
-		Size = UDim2.new(1, -Window.TabWidth - 32, 1, -102),
-		Position = UDim2.fromOffset(Window.TabWidth + 26, 90),
+		Size = UDim2.new(1, -Window.TabWidth - 32, 1, -96),
+		Position = UDim2.fromOffset(Window.TabWidth + 26, 84),
 		BackgroundTransparency = 1,
 	}, {
 		Window.ContainerAnim,
@@ -1911,9 +2535,7 @@ return function(Config)
 		TabFrame,
 		ResizeStartFrame,
 	})
-	-- scale used by the open / minimize animation
-	local RootScale = New("UIScale", { Scale = 1, Parent = Window.Root })
-	local ScaleTween
+	local ShowTween
 
 	Window.TitleBar = require(script.Parent.TitleBar)({
 		Title = Config.Title,
@@ -2103,19 +2725,25 @@ return function(Config)
 
 	function Window:Minimize()
 		Window.Minimized = not Window.Minimized
-		if ScaleTween then ScaleTween:Cancel() end
+		if ShowTween then ShowTween:Cancel() end
+		-- a short slide: moving the window costs nothing, scaling it re-laid out thousands of objects every frame
 		local TweenService = game:GetService("TweenService")
+		local Home = Window.Maximized and UDim2.fromOffset(0, 0) or UDim2.fromOffset(Window.Position.X.Offset, Window.Position.Y.Offset)
+		local Away = Home + UDim2.fromOffset(0, 14)
 		if Window.Minimized then
-			ScaleTween = TweenService:Create(RootScale, TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.In), { Scale = 0.92 })
-			ScaleTween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed and Window.Minimized then Window.Root.Visible = false end
+			ShowTween = TweenService:Create(Window.Root, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = Away })
+			ShowTween.Completed:Connect(function(state)
+				if state == Enum.PlaybackState.Completed and Window.Minimized then
+					Window.Root.Visible = false
+					Window.Root.Position = Home
+				end
 			end)
 		else
+			Window.Root.Position = Away
 			Window.Root.Visible = true
-			RootScale.Scale = 0.92
-			ScaleTween = TweenService:Create(RootScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+			ShowTween = TweenService:Create(Window.Root, TweenInfo.new(0.18, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Position = Home })
 		end
-		ScaleTween:Play()
+		ShowTween:Play()
 		if not MinimizeNotif then
 			MinimizeNotif = true
 			local Key = Library.MinimizeKeybind and Library.MinimizeKeybind.Value or Library.MinimizeKey.Name
@@ -2195,7 +2823,7 @@ return function(Config)
 end
 
 end
-Sources[18] = function(script)
+Sources[19] = function(script)
 local Root = script.Parent
 local Themes = require(Root.Themes)
 local Flipper = require(Root.Packages.Flipper)
@@ -2301,22 +2929,26 @@ function Creator.UpdateTheme()
 	end
 end
 
-function Creator.AddThemeObject(Object, Properties)
-	local Idx = #Creator.Registry + 1
-	local Data = {
-		Object = Object,
-		Properties = Properties,
-		Idx = Idx,
-	}
+-- colours only the new object: repainting the whole registry for every object made building the UI quadratic
+local function Paint(Object, Properties)
+	for Property, ColorIdx in next, Properties do
+		Object[Property] = Creator.GetThemeProperty(ColorIdx)
+	end
+end
 
-	Creator.Registry[Object] = Data
-	Creator.UpdateTheme()
+function Creator.AddThemeObject(Object, Properties)
+	if not Creator.Registry[Object] then
+		-- dropped when destroyed, so rebuilt galleries and lists do not pile up in the registry
+		Object.Destroying:Once(function() Creator.Registry[Object] = nil end)
+	end
+	Creator.Registry[Object] = { Properties = Properties }
+	Paint(Object, Properties)
 	return Object
 end
 
 function Creator.OverrideTag(Object, Properties)
 	Creator.Registry[Object].Properties = Properties
-	Creator.UpdateTheme()
+	Paint(Object, Properties)
 end
 
 function Creator.New(Name, Properties, Children)
@@ -2370,10 +3002,73 @@ function Creator.SpringMotor(Initial, Instance, Prop, IgnoreDialogCheck, ResetOn
 	return Motor, SetValue
 end
 
+-- model clone framed by a camera looking at its bounding box. portrait = a head-and-shoulders crop
+-- (the way the game's own unit slots show a unit) instead of the whole body
+function Creator.Viewport(model, size, portrait)
+	local frame = Creator.New("ViewportFrame", {
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+		Ambient = Color3.fromRGB(200, 200, 200),
+		LightColor = Color3.fromRGB(255, 255, 255),
+	})
+	local ok, clone = pcall(function() return model:Clone() end)
+	if not ok or not clone then return frame end
+	-- a still picture needs none of the effects, sounds or scripts the game's models carry
+	for _, d in ipairs(clone:GetDescendants()) do
+		if d:IsA("LuaSourceContainer") or d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail") or d:IsA("Light")
+			or d:IsA("Fire") or d:IsA("Smoke") or d:IsA("Sparkles") or d:IsA("Sound") or d:IsA("Highlight") or d:IsA("BillboardGui") then
+			d:Destroy()
+		end
+	end
+	clone.Parent = frame
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 40
+	camera.Parent = frame
+	frame.CurrentCamera = camera
+	local cf, extents = clone:GetBoundingBox()
+	if portrait then
+		local head = clone:FindFirstChild("Head", true)
+		local focus = head and head:IsA("BasePart") and head.Position or (cf.Position + Vector3.new(0, extents.Y * 0.32, 0))
+		local window = extents.Y * 0.42 -- height of the slice that stays in view
+		local distance = (window / 2) / math.tan(math.rad(camera.FieldOfView / 2))
+		camera.CFrame = CFrame.lookAt(focus + cf.LookVector * distance + Vector3.new(0, window * 0.1, 0), focus - Vector3.new(0, window * 0.12, 0))
+		return frame
+	end
+	local distance = math.max(extents.X, extents.Y, extents.Z) * 1.4
+	camera.CFrame = CFrame.lookAt(cf.Position + cf.LookVector * distance + Vector3.new(0, extents.Y * 0.1, 0), cf.Position)
+	return frame
+end
+
+-- a small icon for a list row: an image id ("rbxassetid://..", "http.."), a Model (portrait viewport),
+-- a Color3 (round swatch) or any other text (an emoji)
+function Creator.Icon(icon, size)
+	if typeof(icon) == "Instance" then return Creator.Viewport(icon, size, true) end
+	if type(icon) == "table" then -- { background, accent }: a theme swatch, its background with an accent centre
+		return Creator.New("Frame", { Size = UDim2.fromOffset(size * 0.75, size * 0.75), BackgroundColor3 = icon[1] }, {
+			Creator.New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			Creator.New("UIStroke", { Color = Color3.new(1, 1, 1), Transparency = 0.6 }),
+			Creator.New("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.45, 0.45), BackgroundColor3 = icon[2] }, {
+				Creator.New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			}),
+		})
+	end
+	if typeof(icon) == "Color3" then
+		return Creator.New("Frame", { Size = UDim2.fromOffset(size * 0.6, size * 0.6), BackgroundColor3 = icon }, {
+			Creator.New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			Creator.New("UIStroke", { Color = Color3.new(1, 1, 1), Transparency = 0.7 }),
+		})
+	end
+	icon = tostring(icon)
+	if icon:find("^rbxasset") or icon:find("^http") then
+		return Creator.New("ImageLabel", { Size = UDim2.fromOffset(size, size), BackgroundTransparency = 1, Image = icon, ScaleType = Enum.ScaleType.Fit })
+	end
+	return Creator.New("TextLabel", { Size = UDim2.fromOffset(size, size), BackgroundTransparency = 1, Text = icon, TextScaled = true, TextColor3 = Color3.new(1, 1, 1) })
+end
+
 return Creator
 
 end
-Sources[19] = function(script)
+Sources[20] = function(script)
 local Elements = {}
 
 for _, Theme in next, script:GetChildren() do
@@ -2383,7 +3078,7 @@ end
 return Elements
 
 end
-Sources[20] = function(script)
+Sources[21] = function(script)
 local Root = script.Parent.Parent
 local Creator = require(Root.Creator)
 
@@ -2398,7 +3093,7 @@ function Element:New(Config)
 	assert(Config.Title, "Button - Missing Title")
 	Config.Callback = Config.Callback or function() end
 
-	local ButtonFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true)
+	local ButtonFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true, true, 36)
 
 	local ButtonIco = New("ImageLabel", {
 		Image = "rbxassetid://10709791437",
@@ -2422,7 +3117,7 @@ end
 return Element
 
 end
-Sources[21] = function(script)
+Sources[22] = function(script)
 local UserInputService = game:GetService("UserInputService")
 local TouchInputService = game:GetService("TouchInputService")
 local RunService = game:GetService("RunService")
@@ -2464,7 +3159,7 @@ function Element:New(Idx, Config)
 
 	Colorpicker:SetHSVFromRGB(Colorpicker.Value)
 
-	local ColorpickerFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true)
+	local ColorpickerFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true, true, 46)
 
 	Colorpicker.SetTitle = ColorpickerFrame.SetTitle
 	Colorpicker.SetDesc = ColorpickerFrame.SetDesc
@@ -2937,7 +3632,7 @@ end
 return Element
 
 end
-Sources[22] = function(script)
+Sources[23] = function(script)
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
@@ -2960,6 +3655,7 @@ function Element:New(Idx, Config)
 	local Dropdown = {
 		Values = Config.Values,
 		Value = Config.Multi and {} or Config.Default, -- multi Default is a list; copying it leaked numeric keys
+		Icons = Config.Icons or {}, -- value -> image id / Model / Color3 / emoji, shown before the option
 		Multi = Config.Multi,
 		Buttons = {},
 		Opened = false,
@@ -2967,8 +3663,8 @@ function Element:New(Idx, Config)
 		Callback = Config.Callback or function() end,
 	}
 
-	local DropdownFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false)
-	DropdownFrame.DescLabel.Size = UDim2.new(1, -170, 0, 14)
+	local LazyIcons, PlaceIcon
+	local DropdownFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false, true, 170)
 
 	Dropdown.SetTitle = DropdownFrame.SetTitle
 	Dropdown.SetDesc = DropdownFrame.SetDesc
@@ -2981,6 +3677,7 @@ function Element:New(Idx, Config)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Size = UDim2.new(1, -30, 0, 14),
 		Position = UDim2.new(0, 8, 0.5, 0),
+		Name = "DisplayText",
 		AnchorPoint = Vector2.new(0, 0.5),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = 1,
@@ -3116,23 +3813,25 @@ function Element:New(Idx, Config)
 	})
 	table.insert(Library.OpenFrames, DropdownHolderCanvas)
 
+	local function ScreenSize()
+		local gui = Library.GUI
+		return gui and gui.AbsoluteSize.Y > 0 and gui.AbsoluteSize or Camera.ViewportSize
+	end
+
 	local function RecalculateListPosition()
-		local Add = 0
-		if Camera.ViewportSize.Y - DropdownInner.AbsolutePosition.Y < DropdownHolderCanvas.AbsoluteSize.Y - 5 then
-			Add = DropdownHolderCanvas.AbsoluteSize.Y
-				- 5
-				- (Camera.ViewportSize.Y - DropdownInner.AbsolutePosition.Y)
-				+ 40
-		end
-		DropdownHolderCanvas.Position =
-			UDim2.fromOffset(DropdownInner.AbsolutePosition.X - 1, DropdownInner.AbsolutePosition.Y - 5 - Add)
+		local screen, size = ScreenSize(), DropdownHolderCanvas.AbsoluteSize
+		local x = math.clamp(DropdownInner.AbsolutePosition.X - 1, 4, math.max(4, screen.X - size.X - 4))
+		local y = math.clamp(DropdownInner.AbsolutePosition.Y - 5, 4, math.max(4, screen.Y - size.Y - 4))
+		DropdownHolderCanvas.Position = UDim2.fromOffset(x, y)
 	end
 
 	local ListSizeX = 0
 	local function RecalculateListSize()
-		local maxHeight = math.min(392, math.floor(Camera.ViewportSize.Y * 0.6))
+		-- about 7 rows at most, and never more than half the screen: long lists scroll (and get a search box)
+		local maxHeight = math.min(260 + TopOffset, math.floor(ScreenSize().Y * 0.5))
 		local height = DropdownListLayout.AbsoluteContentSize.Y + 10 + TopOffset
 		DropdownHolderCanvas.Size = UDim2.fromOffset(math.min(ListSizeX, MAX_WIDTH), math.min(height, maxHeight))
+		RecalculateListPosition()
 	end
 
 	local function RecalculateCanvasSize()
@@ -3177,10 +3876,24 @@ function Element:New(Idx, Config)
 		end
 	end)
 
+	-- 3D previews in the list exist only while it is open: dozens of cloned models cost memory and frames
+	LazyIcons = {}
+	function PlaceIcon(Image, Button)
+		Image.Name = "RowIcon"
+		Image.AnchorPoint = Vector2.new(0.5, 0.5)
+		Image.Position = UDim2.fromOffset(23, 16)
+		Image.ZIndex = 23
+		Image.Parent = Button
+	end
+
 	local ScrollFrame = self.ScrollFrame
 	function Dropdown:Open()
 		Dropdown.Opened = true
 		ScrollFrame.ScrollingEnabled = false
+		for Button, Model in pairs(LazyIcons) do
+			if Button.Parent and not Button:FindFirstChild("RowIcon") then PlaceIcon(Creator.Icon(Model, 24), Button) end
+		end
+		RecalculateListSize()
 		DropdownHolderCanvas.Visible = true
 		TweenService:Create(
 			DropdownHolderFrame,
@@ -3199,7 +3912,12 @@ function Element:New(Idx, Config)
 			{ Size = UDim2.fromScale(1, 0.6) }
 		)
 		Shrink.Completed:Connect(function()
-			if not Dropdown.Opened then DropdownHolderCanvas.Visible = false end
+			if Dropdown.Opened then return end
+			DropdownHolderCanvas.Visible = false
+			for Button in pairs(LazyIcons) do
+				local Icon = Button:FindFirstChild("RowIcon")
+				if Icon then Icon:Destroy() end
+			end
 		end)
 		Shrink:Play()
 	end
@@ -3208,18 +3926,30 @@ function Element:New(Idx, Config)
 		local Values = Dropdown.Values
 		local Str = ""
 
+		local Icon
 		if Config.Multi then
-			for Idx, Value in next, Values do
-				if Dropdown.Value[Value] then
-					Str = Str .. Value .. ", "
-				end
+			local Picked = {}
+			for _, Value in next, Values do
+				if Dropdown.Value[Value] then table.insert(Picked, tostring(Value)) end
 			end
-			Str = Str:sub(1, #Str - 2)
+			Str = table.concat(Picked, ", ", 1, math.min(#Picked, 2)) .. (#Picked > 2 and (" +" .. (#Picked - 2)) or "")
 		else
 			Str = Dropdown.Value or ""
+			Icon = Dropdown.Value ~= nil and Dropdown.Icons[Dropdown.Value] or nil
 		end
 
 		DropdownDisplay.Text = (Str == "" and "--" or Str)
+		local Old = DropdownInner:FindFirstChild("DisplayIcon")
+		if Old then Old:Destroy() end
+		if Icon then
+			local Image = Creator.Icon(Icon, 20)
+			Image.Name = "DisplayIcon"
+			Image.AnchorPoint = Vector2.new(0, 0.5)
+			Image.Position = UDim2.new(0, 6, 0.5, 0)
+			Image.Parent = DropdownInner
+		end
+		DropdownDisplay.Position = UDim2.new(0, Icon and 30 or 8, 0.5, 0)
+		DropdownDisplay.Size = UDim2.new(1, Icon and -52 or -30, 0, 14)
 	end
 
 	function Dropdown:GetActiveValues()
@@ -3245,6 +3975,7 @@ function Element:New(Idx, Config)
 				Element:Destroy()
 			end
 		end
+		LazyIcons = {}
 
 		local Count = 0
 
@@ -3285,6 +4016,12 @@ function Element:New(Idx, Config)
 				},
 			})
 
+			local RowIcon = Dropdown.Icons[Value]
+			if RowIcon ~= nil then
+				ButtonLabel.Position = UDim2.fromOffset(38, 0)
+				ButtonLabel.Size = UDim2.new(1, -42, 1, 0)
+			end
+
 			local Button = New("TextButton", {
 				Size = UDim2.new(1, -5, 0, 32),
 				BackgroundTransparency = 1,
@@ -3301,6 +4038,11 @@ function Element:New(Idx, Config)
 					CornerRadius = UDim.new(0, 6),
 				}),
 			})
+			if typeof(RowIcon) == "Instance" then
+				LazyIcons[Button] = RowIcon -- a 3D preview is built when the list opens
+			elseif RowIcon ~= nil then
+				PlaceIcon(Creator.Icon(RowIcon, 24), Button)
+			end
 
 			local Selected
 
@@ -3391,7 +4133,7 @@ function Element:New(Idx, Config)
 				end
 			end
 		end
-		ListSizeX = ListSizeX + 30
+		ListSizeX = ListSizeX + (next(Dropdown.Icons) and 58 or 30)
 
 		RecalculateCanvasSize()
 		RecalculateListSize()
@@ -3403,6 +4145,12 @@ function Element:New(Idx, Config)
 		end
 
 		Dropdown:BuildDropdownList()
+	end
+
+	function Dropdown:SetIcons(Icons) -- value -> icon (see Creator.Icon); rebuilds the list
+		Dropdown.Icons = Icons or {}
+		Dropdown:BuildDropdownList()
+		Dropdown:Display()
 	end
 
 	function Dropdown:OnChanged(Func)
@@ -3486,17 +4234,18 @@ end
 return Element
 
 end
-Sources[23] = function(script)
+Sources[24] = function(script)
 -- Gallery: a titled grid of tiles. Each tile shows an image id or a 3D model (ViewportFrame), with
 -- an optional caption and badge.
 --
 --   local g = Tab:AddGallery("Team", {
 --       Title = "Story team",
 --       TileSize = 72,                              -- optional, px
+--       Portrait = true,                            -- optional: model tiles show head and shoulders
 --       FullWidth = true, AspectRatio = 2.2,        -- optional: tiles span the section (banners, maps)
 --       Items = {
---           { Image = "rbxassetid://123", Text = "Shinobi", Badge = "6" },
---           { Model = someModel, Text = "Bulma" },   -- cloned into a viewport, camera auto-framed
+--           { Image = "rbxassetid://123", Text = "Shinobi", Badge = "6", BadgeColor = Color3.fromRGB(180, 156, 68) },
+--           { Model = someModel, Text = "Bulma", Portrait = false },   -- cloned into a viewport, camera auto-framed
 --       },
 --       Callback = function(index, item) end,       -- optional, tile clicked
 --   })
@@ -3513,29 +4262,12 @@ local Element = {}
 Element.__index = Element
 Element.__type = "Gallery"
 
--- model clone framed by a camera looking at its bounding box
-local function viewport(model, size)
-	local frame = New("ViewportFrame", {
-		Size = UDim2.fromOffset(size, size),
-		BackgroundTransparency = 1,
-		Ambient = Color3.fromRGB(200, 200, 200),
-		LightColor = Color3.fromRGB(255, 255, 255),
-	})
-	local ok, clone = pcall(function() return model:Clone() end)
-	if not ok or not clone then return frame end
-	for _, d in ipairs(clone:GetDescendants()) do
-		if d:IsA("Script") or d:IsA("LocalScript") then d:Destroy() end
-	end
-	clone.Parent = frame
-	local camera = Instance.new("Camera")
-	camera.FieldOfView = 40
-	camera.Parent = frame
-	frame.CurrentCamera = camera
-	local cf, extents = clone:GetBoundingBox()
-	local distance = math.max(extents.X, extents.Y, extents.Z) * 1.4
-	camera.CFrame = CFrame.lookAt(cf.Position + cf.LookVector * distance + Vector3.new(0, extents.Y * 0.1, 0), cf.Position)
-	return frame
+-- readable text on a custom badge colour
+local function badgeText(color)
+	return (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) > 0.6 and Color3.new(0, 0, 0) or Color3.new(1, 1, 1)
 end
+
+local viewport = Creator.Viewport
 
 function Element:New(Idx, Config)
 	-- AddGallery(Config) also works (Fluent passes the first argument as Idx)
@@ -3550,6 +4282,7 @@ function Element:New(Idx, Config)
 	GalleryFrame.Frame.BackgroundTransparency = 0.92
 	Gallery.SetTitle = GalleryFrame.SetTitle
 	Gallery.SetDesc = GalleryFrame.SetDesc
+	Gallery.Frame = GalleryFrame.Frame -- so callers can hide / show the whole gallery
 
 	local Grid = New("Frame", {
 		BackgroundTransparency = 1,
@@ -3569,16 +4302,27 @@ function Element:New(Idx, Config)
 		New("UIPadding", { PaddingTop = UDim.new(0, 6) }),
 	})
 
+	-- 3D previews survive SetItems: a model shown again reuses its viewport instead of cloning the model again
+	local Previews, Spare = {}, {}
+	local function Preview(item)
+		local portrait = item.Portrait == nil and Config.Portrait or item.Portrait
+		local key = item.Model
+		local reused = Spare[key] and table.remove(Spare[key])
+		local frame = reused or viewport(item.Model, TileSize, portrait)
+		Previews[frame] = key
+		return frame
+	end
+
 	-- wide tile: image fills (cropped), caption over a dark gradient at the bottom
 	local function wideTile(index, item)
 		local scale = New("UIScale", { Scale = 0.95 })
-		local media = item.Model and viewport(item.Model, TileSize) or New("ImageLabel", {
+		local media = item.Model and Preview(item) or New("ImageLabel", {
 			BackgroundTransparency = 1,
 			Image = item.Image or "",
 			ScaleType = Enum.ScaleType.Crop,
 		})
 		media.Size = UDim2.fromScale(1, 1)
-		New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = media })
+		if not media:FindFirstChildOfClass("UICorner") then New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = media }) end
 		local holder = New("Frame", {
 			LayoutOrder = index,
 			-- tall on purpose: the aspect constraint (fit within) shrinks the height to width / AspectRatio
@@ -3628,7 +4372,9 @@ function Element:New(Idx, Config)
 					Position = UDim2.new(1, -8, 1, -6),
 					BackgroundTransparency = 0.1,
 					ZIndex = 3,
-					ThemeTag = { BackgroundColor3 = "Accent", TextColor3 = "Text" },
+					BackgroundColor3 = item.BadgeColor,
+					TextColor3 = item.BadgeColor and badgeText(item.BadgeColor) or nil,
+					ThemeTag = not item.BadgeColor and { BackgroundColor3 = "Accent", TextColor3 = "Text" } or nil,
 				}, {
 					New("UICorner", { CornerRadius = UDim.new(0, 4) }),
 					New("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5) }),
@@ -3650,7 +4396,7 @@ function Element:New(Idx, Config)
 	local function tile(index, item)
 		if FullWidth then return wideTile(index, item) end
 		local scale = New("UIScale", { Scale = 0.8 })
-		local media = item.Model and viewport(item.Model, TileSize) or New("ImageLabel", {
+		local media = item.Model and Preview(item) or New("ImageLabel", {
 			Size = UDim2.fromOffset(TileSize, TileSize),
 			BackgroundTransparency = 1,
 			Image = item.Image or "",
@@ -3691,7 +4437,9 @@ function Element:New(Idx, Config)
 				AnchorPoint = Vector2.new(1, 0),
 				Position = UDim2.new(1, -3, 0, 3),
 				BackgroundTransparency = 0.2,
-				ThemeTag = { BackgroundColor3 = "Accent", TextColor3 = "Text" },
+				BackgroundColor3 = item.BadgeColor,
+					TextColor3 = item.BadgeColor and badgeText(item.BadgeColor) or nil,
+					ThemeTag = not item.BadgeColor and { BackgroundColor3 = "Accent", TextColor3 = "Text" } or nil,
 			}, {
 				New("UICorner", { CornerRadius = UDim.new(0, 4) }),
 				New("UIPadding", { PaddingLeft = UDim.new(0, 3), PaddingRight = UDim.new(0, 3) }),
@@ -3716,10 +4464,23 @@ function Element:New(Idx, Config)
 
 	function Gallery:SetItems(Items)
 		Gallery.Items = Items or {}
+		Spare = {}
+		for frame, key in pairs(Previews) do
+			if frame.Parent then
+				frame.Parent = nil
+				Spare[key] = Spare[key] or {}
+				table.insert(Spare[key], frame)
+			end
+		end
+		Previews = {}
 		for _, child in ipairs(Grid:GetChildren()) do
 			if child:IsA("GuiObject") then child:Destroy() end
 		end
 		for index, item in ipairs(Gallery.Items) do tile(index, item) end
+		for _, list in pairs(Spare) do
+			for _, frame in ipairs(list) do frame:Destroy() end
+		end
+		Spare = {}
 	end
 
 	function Gallery:Destroy()
@@ -3735,7 +4496,7 @@ end
 return Element
 
 end
-Sources[24] = function(script)
+Sources[25] = function(script)
 local Root = script.Parent.Parent
 local Creator = require(Root.Creator)
 
@@ -3760,7 +4521,7 @@ function Element:New(Idx, Config)
 		Type = "Input",
 	}
 
-	local InputFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false)
+	local InputFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false, true, 170)
 
 	Input.SetTitle = InputFrame.SetTitle
 	Input.SetDesc = InputFrame.SetDesc
@@ -3822,7 +4583,7 @@ end
 return Element
 
 end
-Sources[25] = function(script)
+Sources[26] = function(script)
 local UserInputService = game:GetService("UserInputService")
 
 local Root = script.Parent.Parent
@@ -3851,7 +4612,7 @@ function Element:New(Idx, Config)
 
 	local Picking = false
 
-	local KeybindFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true)
+	local KeybindFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true, true, 80)
 
 	Keybind.SetTitle = KeybindFrame.SetTitle
 	Keybind.SetDesc = KeybindFrame.SetDesc
@@ -4030,7 +4791,7 @@ end
 return Element
 
 end
-Sources[26] = function(script)
+Sources[27] = function(script)
 local Root = script.Parent.Parent
 local Components = Root.Components
 local Flipper = require(Root.Packages.Flipper)
@@ -4054,7 +4815,234 @@ end
 return Paragraph
 
 end
-Sources[27] = function(script)
+Sources[28] = function(script)
+-- Reorder: a ranked list the user sorts with the up / down buttons; rows slide to their new place.
+--
+--   local r = Tab:AddReorder("JoinOrder", {
+--       Title = "Join order",
+--       Values = { "Story", "Raid", "Event" },        -- the current order, first = rank 1
+--       Icons = { Story = "📖", Raid = "rbxassetid://123" }, -- optional (see Creator.Icon)
+--       Callback = function(list) end,               -- new order after every move
+--   })
+--   r:SetValue(list)   r:OnChanged(fn)   r.Value -> current order
+--   r:SetMuted({ Raid = true }, "Off")   -- faded rows with a tag (e.g. modes that are switched off)
+local TweenService = game:GetService("TweenService")
+
+local Root = script.Parent.Parent
+local Creator = require(Root.Creator)
+
+local New = Creator.New
+local Components = Root.Components
+
+local ROW, GAP = 34, 4
+local SLIDE = TweenInfo.new(0.28, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+
+local Element = {}
+Element.__index = Element
+Element.__type = "Reorder"
+
+function Element:New(Idx, Config)
+	local Library = self.Library
+	local Reorder = { Type = "Reorder", Value = {}, Icons = Config.Icons or {}, Callback = Config.Callback or function() end }
+
+	local Frame = require(Components.Element)(Config.Title, Config.Description, self.Container, false)
+	Reorder.SetTitle = Frame.SetTitle
+	Reorder.SetDesc = Frame.SetDesc
+	Reorder.Frame = Frame.Frame
+
+	local List = New("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 0),
+		LayoutOrder = 2,
+		Parent = Frame.LabelHolder,
+	})
+
+	local Rows = {} -- value -> row { Frame, Rank, Up, Down }
+
+	local function Place(Row, Index, Animate)
+		local Goal = UDim2.fromOffset(0, 6 + (Index - 1) * (ROW + GAP))
+		if Animate then
+			TweenService:Create(Row.Frame, SLIDE, { Position = Goal }):Play()
+		else
+			Row.Frame.Position = Goal
+		end
+		Row.Rank.Text = tostring(Index)
+		Row.Up.ImageTransparency = Index == 1 and 0.8 or 0.2
+		Row.Down.ImageTransparency = Index == #Reorder.Value and 0.8 or 0.2
+	end
+
+	local function Layout(Animate)
+		List.Size = UDim2.new(1, 0, 0, 6 + #Reorder.Value * (ROW + GAP))
+		for Index, Value in ipairs(Reorder.Value) do
+			if Rows[Value] then Place(Rows[Value], Index, Animate) end
+		end
+	end
+
+	local function Fire()
+		local Copy = table.clone(Reorder.Value)
+		Library:SafeCallback(Reorder.Callback, Copy)
+		Library:SafeCallback(Reorder.Changed, Copy)
+	end
+
+	local function Move(Value, Step)
+		local From = table.find(Reorder.Value, Value)
+		local To = From and From + Step
+		if not To or To < 1 or To > #Reorder.Value then return end
+		Reorder.Value[From], Reorder.Value[To] = Reorder.Value[To], Reorder.Value[From]
+		Layout(true)
+		-- the moved row lights up for a moment so the eye follows it
+		local Stroke = Rows[Value].Stroke
+		Stroke.Transparency = 0
+		TweenService:Create(Stroke, TweenInfo.new(0.6), { Transparency = 1 }):Play()
+		Fire()
+	end
+
+	local function ArrowButton(Icon, X)
+		local Button = New("ImageButton", {
+			Size = UDim2.fromOffset(28, 28),
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, X, 0.5, 0),
+			BackgroundTransparency = 0.9,
+			Image = "",
+			ThemeTag = { BackgroundColor3 = "DropdownFrame" },
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+		})
+		local Arrow = New("ImageLabel", {
+			Size = UDim2.fromOffset(16, 16),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			BackgroundTransparency = 1,
+			Image = Library:GetIcon(Icon),
+			Parent = Button,
+			ThemeTag = { ImageColor3 = "Text" },
+		})
+		Creator.AddSignal(Button.MouseEnter, function()
+			TweenService:Create(Button, TweenInfo.new(0.12), { BackgroundTransparency = 0.75 }):Play()
+		end)
+		Creator.AddSignal(Button.MouseLeave, function()
+			TweenService:Create(Button, TweenInfo.new(0.12), { BackgroundTransparency = 0.9 }):Play()
+		end)
+		return Button, Arrow
+	end
+
+	local function MakeRow(Value)
+		local Icon = Reorder.Icons[Value]
+		local Row = {}
+		Row.Stroke = New("UIStroke", { Thickness = 1.5, Transparency = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, ThemeTag = { Color = "Accent" } })
+		Row.Rank = New("TextLabel", {
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold),
+			TextSize = 12,
+			Size = UDim2.fromOffset(22, 22),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 6, 0.5, 0),
+			BackgroundTransparency = 0.15,
+			ThemeTag = { BackgroundColor3 = "Accent", TextColor3 = "ToggleToggled" },
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		})
+		Row.Frame = New("Frame", {
+			Size = UDim2.new(1, 0, 0, ROW),
+			BackgroundTransparency = 0.9,
+			Parent = List,
+			ThemeTag = { BackgroundColor3 = "DropdownFrame" },
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+			Row.Stroke,
+			Row.Rank,
+			New("TextLabel", {
+				Name = "Label",
+				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium),
+				Text = tostring(Value),
+				TextSize = 13,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				BackgroundTransparency = 1,
+				Position = UDim2.fromOffset(Icon ~= nil and 62 or 36, 0),
+				Size = UDim2.new(1, (Icon ~= nil and -62 or -36) - 70, 1, 0),
+				ThemeTag = { TextColor3 = "Text" },
+			}),
+		})
+		Row.Tag = New("TextLabel", {
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold),
+			TextSize = 10,
+			Visible = false,
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, 16),
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -70, 0.5, 0),
+			BackgroundTransparency = 0.6,
+			Parent = Row.Frame,
+			ThemeTag = { BackgroundColor3 = "InElementBorder", TextColor3 = "SubText" },
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(0, 4) }),
+			New("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5) }),
+		})
+		if Icon ~= nil then
+			local Image = Creator.Icon(Icon, 22)
+			Image.Name = "Icon"
+			Image.AnchorPoint = Vector2.new(0, 0.5)
+			Image.Position = UDim2.new(0, 34, 0.5, 0)
+			Image.Parent = Row.Frame
+		end
+		local Up, UpArrow = ArrowButton("chevron-up", -36)
+		local Down, DownArrow = ArrowButton("chevron-down", -4)
+		Up.Parent, Down.Parent = Row.Frame, Row.Frame
+		Row.Up, Row.Down = UpArrow, DownArrow
+		Creator.AddSignal(Up.MouseButton1Click, function() Move(Value, -1) end)
+		Creator.AddSignal(Down.MouseButton1Click, function() Move(Value, 1) end)
+		Rows[Value] = Row
+	end
+
+	function Reorder:SetValue(List)
+		Reorder.Value = table.clone(List or {})
+		for Value, Row in pairs(Rows) do
+			if not table.find(Reorder.Value, Value) then
+				Row.Frame:Destroy()
+				Rows[Value] = nil
+			end
+		end
+		for _, Value in ipairs(Reorder.Value) do
+			if not Rows[Value] then MakeRow(Value) end
+		end
+		Layout(false)
+	end
+	Reorder.SetValues = Reorder.SetValue
+
+	function Reorder:SetMuted(Muted, Tag)
+		for Value, Row in pairs(Rows) do
+			local Off = Muted[Value] == true
+			local Fade = TweenInfo.new(0.2)
+			TweenService:Create(Row.Frame.Label, Fade, { TextTransparency = Off and 0.6 or 0 }):Play()
+			TweenService:Create(Row.Rank, Fade, { BackgroundTransparency = Off and 0.75 or 0.15, TextTransparency = Off and 0.5 or 0 }):Play()
+			local Image = Row.Frame:FindFirstChild("Icon")
+			if Image and Image:IsA("ImageLabel") then Image.ImageTransparency = Off and 0.6 or 0 end
+			if Image and Image:IsA("TextLabel") then Image.TextTransparency = Off and 0.6 or 0 end
+			if Image and Image:IsA("ViewportFrame") then Image.ImageTransparency = Off and 0.6 or 0 end
+			Row.Tag.Text = Tag or "Off"
+			Row.Tag.Visible = Off
+		end
+	end
+
+	function Reorder:OnChanged(Func)
+		Reorder.Changed = Func
+		Func(table.clone(Reorder.Value))
+	end
+
+	function Reorder:Destroy()
+		Frame:Destroy()
+		if Idx then Library.Options[Idx] = nil end
+	end
+
+	Reorder:SetValue(Config.Values or Config.Default)
+	if Idx then Library.Options[Idx] = Reorder end
+	return Reorder
+end
+
+return Element
+
+end
+Sources[29] = function(script)
 local UserInputService = game:GetService("UserInputService")
 local Root = script.Parent.Parent
 local Creator = require(Root.Creator)
@@ -4085,8 +5073,7 @@ function Element:New(Idx, Config)
 
 	local Dragging = false
 
-	local SliderFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false)
-	SliderFrame.DescLabel.Size = UDim2.new(1, -170, 0, 14)
+	local SliderFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false, true, 170)
 
 	Slider.SetTitle = SliderFrame.SetTitle
 	Slider.SetDesc = SliderFrame.SetDesc
@@ -4218,7 +5205,7 @@ end
 return Element
 
 end
-Sources[28] = function(script)
+Sources[30] = function(script)
 local TweenService = game:GetService("TweenService")
 local Root = script.Parent.Parent
 local Creator = require(Root.Creator)
@@ -4240,8 +5227,7 @@ function Element:New(Idx, Config)
 		Type = "Toggle",
 	}
 
-	local ToggleFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true)
-	ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
+	local ToggleFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true, true, 54)
 
 	Toggle.SetTitle = ToggleFrame.SetTitle
 	Toggle.SetDesc = ToggleFrame.SetDesc
@@ -4326,7 +5312,7 @@ end
 return Element
 
 end
-Sources[29] = function(script)
+Sources[31] = function(script)
 -- This file was @generated by Tarmac. It is not intended for manual editing.
 return {
 	assets = {
@@ -5152,7 +6138,7 @@ return {
 }
 
 end
-Sources[31] = function(script)
+Sources[33] = function(script)
 local Flipper = {
 	SingleMotor = require(script.SingleMotor),
 	GroupMotor = require(script.GroupMotor),
@@ -5167,7 +6153,7 @@ local Flipper = {
 return Flipper
 
 end
-Sources[32] = function(script)
+Sources[34] = function(script)
 local RunService = game:GetService("RunService")
 
 local Signal = require(script.Parent.Signal)
@@ -5225,7 +6211,7 @@ end
 return BaseMotor
 
 end
-Sources[33] = function(script)
+Sources[35] = function(script)
 local BaseMotor = require(script.Parent.BaseMotor)
 local SingleMotor = require(script.Parent.SingleMotor)
 
@@ -5338,7 +6324,7 @@ end
 return GroupMotor
 
 end
-Sources[34] = function(script)
+Sources[36] = function(script)
 local Instant = {}
 Instant.__index = Instant
 
@@ -5358,7 +6344,7 @@ end
 return Instant
 
 end
-Sources[35] = function(script)
+Sources[37] = function(script)
 local Linear = {}
 Linear.__index = Linear
 
@@ -5397,7 +6383,7 @@ end
 return Linear
 
 end
-Sources[36] = function(script)
+Sources[38] = function(script)
 local Connection = {}
 Connection.__index = Connection
 
@@ -5458,7 +6444,7 @@ end
 return Signal
 
 end
-Sources[37] = function(script)
+Sources[39] = function(script)
 local BaseMotor = require(script.Parent.BaseMotor)
 
 local SingleMotor = setmetatable({}, BaseMotor)
@@ -5528,7 +6514,7 @@ end
 return SingleMotor
 
 end
-Sources[38] = function(script)
+Sources[40] = function(script)
 local VELOCITY_THRESHOLD = 0.001
 local POSITION_THRESHOLD = 0.001
 
@@ -5638,7 +6624,7 @@ end
 return Spring
 
 end
-Sources[39] = function(script)
+Sources[41] = function(script)
 local function isMotor(value)
 	local motorType = tostring(value):match("^Motor%((.+)%)$")
 
@@ -5652,7 +6638,7 @@ end
 return isMotor
 
 end
-Sources[40] = function(script)
+Sources[42] = function(script)
 local Themes = {
 	Names = {
 		"Dark",
@@ -5661,7 +6647,17 @@ local Themes = {
 		"Aqua",
 		"Amethyst",
 		"Rose",
-	},
+		"Midnight",
+		"Ocean",
+		"Emerald",
+		"Sunset",
+		"Sakura",
+		"Neon",
+		"Dracula",
+		"Nord",
+		"Catppuccin",
+		"Mono",
+	}, -- festival themes are left out: they only come with their festival
 }
 
 for _, Theme in next, script:GetChildren() do
@@ -5669,10 +6665,86 @@ for _, Theme in next, script:GetChildren() do
 	Themes[Required.Name] = Required
 end
 
+-- modern dark themes, each built from a small palette:
+-- bg = window, top = top of the window gradient, card = element tint, line = borders, accent, text, sub
+local function Make(Name, P)
+	local hex = Color3.fromHex
+	local bg, card, line, accent = hex(P.bg), hex(P.card), hex(P.line), hex(P.accent)
+	local text, sub = hex(P.text or "#F1F2F6"), hex(P.sub or "#A3A7B7")
+	local deep = bg:Lerp(Color3.new(0, 0, 0), 0.35)
+	local raised = bg:Lerp(card, 0.25)
+	Themes[Name] = {
+		Name = Name,
+		Accent = accent,
+
+		AcrylicMain = bg,
+		AcrylicBorder = line,
+		AcrylicGradient = ColorSequence.new(hex(P.top or P.bg), bg),
+		AcrylicNoise = 1,
+
+		TitleBarLine = line,
+		Tab = card,
+
+		Element = card,
+		ElementBorder = deep,
+		InElementBorder = line,
+		ElementTransparency = 0.84,
+
+		ToggleSlider = sub,
+		ToggleToggled = deep,
+
+		SliderRail = sub,
+
+		DropdownFrame = card,
+		DropdownHolder = raised,
+		DropdownBorder = line,
+		DropdownOption = card,
+
+		Keybind = card,
+
+		Input = card,
+		InputFocused = deep,
+		InputIndicator = sub,
+
+		Dialog = raised,
+		DialogHolder = bg,
+		DialogHolderLine = deep,
+		DialogButton = raised,
+		DialogButtonBorder = line,
+		DialogBorder = line,
+		DialogInput = bg:Lerp(card, 0.4),
+		DialogInputLine = sub,
+
+		Text = text,
+		SubText = sub,
+		Hover = card,
+		HoverChange = 0.05,
+	}
+end
+
+Make("Midnight", { bg = "#0F1222", top = "#171B33", card = "#4B5694", line = "#272C48", accent = "#7C8CFF" })
+Make("Ocean", { bg = "#0A1922", top = "#0E2633", card = "#3B7FA0", line = "#1B3A4B", accent = "#38BDF8" })
+Make("Emerald", { bg = "#0B1814", top = "#10241D", card = "#3B8A6D", line = "#1B3A2F", accent = "#34D399" })
+Make("Sunset", { bg = "#1A0F12", top = "#2B1416", card = "#9A5446", line = "#3E2226", accent = "#FB923C" })
+Make("Sakura", { bg = "#1B1018", top = "#2A1524", card = "#A35A80", line = "#40232F", accent = "#F472B6" })
+Make("Neon", { bg = "#0C0A16", top = "#1D1033", card = "#5A4A9A", line = "#2A2145", accent = "#22D3EE" })
+Make("Dracula", { bg = "#1E1F29", top = "#282A36", card = "#6272A4", line = "#343746", accent = "#BD93F9", text = "#F8F8F2", sub = "#A8ABC4" })
+Make("Nord", { bg = "#2A303C", top = "#323A48", card = "#6A7894", line = "#3B4252", accent = "#88C0D0", text = "#ECEFF4", sub = "#A9B1C1" })
+Make("Catppuccin", { bg = "#1E1E2E", top = "#24243A", card = "#6C6F93", line = "#313244", accent = "#CBA6F7", text = "#CDD6F4", sub = "#A6ADC8" })
+Make("Mono", { bg = "#101010", top = "#181818", card = "#6A6A6A", line = "#2A2A2A", accent = "#EDEDED", sub = "#9A9A9A" })
+
+Make("Halloween", { bg = "#140B12", top = "#2A1206", card = "#8A4A1C", line = "#3A1E14", accent = "#FF7A1A", sub = "#C2A48F" })
+Make("Christmas", { bg = "#0B1712", top = "#2A0D10", card = "#2F7A4E", line = "#1D3A2A", accent = "#E8424F", sub = "#B9CBBE" })
+Make("New Year", { bg = "#0C0D1C", top = "#1E1A0A", card = "#5A5A8C", line = "#26284A", accent = "#F5C542", sub = "#B6B4C9" })
+Make("Valentine", { bg = "#1A0B12", top = "#2E0F1F", card = "#A0466A", line = "#43202F", accent = "#FF4D8D", sub = "#D3AFC0" })
+Make("Songkran", { bg = "#081A22", top = "#0A2A33", card = "#2F8FA8", line = "#173C48", accent = "#4DD8FF", sub = "#A9CAD4" })
+Make("Lunar New Year", { bg = "#1A0909", top = "#330C0C", card = "#9C3A2A", line = "#4A1A16", accent = "#FFC94A", sub = "#D9B8A6" })
+Make("Loy Krathong", { bg = "#0A0F24", top = "#1A1636", card = "#4C5A9A", line = "#22294A", accent = "#FFD27A", sub = "#B3B8D6" })
+
 return Themes
 
 end
-Sources[41] = function(script)
+Sources[43] = function(script)
 return {
 	Name = "Amethyst",
 	Accent = Color3.fromRGB(97, 62, 167),
@@ -5722,7 +6794,7 @@ return {
 }
 
 end
-Sources[42] = function(script)
+Sources[44] = function(script)
 return {
 	Name = "Aqua",
 	Accent = Color3.fromRGB(60, 165, 165),
@@ -5772,7 +6844,7 @@ return {
 }
 
 end
-Sources[43] = function(script)
+Sources[45] = function(script)
 return {
 	Name = "Dark",
 	Accent = Color3.fromRGB(96, 205, 255),
@@ -5822,7 +6894,7 @@ return {
 }
 
 end
-Sources[44] = function(script)
+Sources[46] = function(script)
 return {
 	Name = "Darker",
 	Accent = Color3.fromRGB(72, 138, 182),
@@ -5855,7 +6927,7 @@ return {
 }
 
 end
-Sources[45] = function(script)
+Sources[47] = function(script)
 return {
 	Name = "Light",
 	Accent = Color3.fromRGB(0, 103, 192),
@@ -5905,7 +6977,7 @@ return {
 }
 
 end
-Sources[46] = function(script)
+Sources[48] = function(script)
 return {
 	Name = "Rose",
 	Accent = Color3.fromRGB(180, 55, 90),
