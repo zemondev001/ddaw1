@@ -243,6 +243,33 @@ function Library:CreateWindow(Config)
 	return Window
 end
 
+Library.UiScale = 1
+Library.ScaleObjects = {}
+
+-- a UIScale that follows Library:SetScale (popups parented to the GUI root use it so they match the window)
+function Library:ScaleObject()
+	local Scale = Instance.new("UIScale")
+	Scale.Scale = Library.UiScale
+	table.insert(Library.ScaleObjects, Scale)
+	Scale.Destroying:Once(function()
+		local Index = table.find(Library.ScaleObjects, Scale)
+		if Index then table.remove(Library.ScaleObjects, Index) end
+	end)
+	return Scale
+end
+
+-- Value = 1 is the normal size; scales the window text and everything else in it, and the popups
+function Library:SetScale(Value)
+	Value = math.clamp(tonumber(Value) or 1, 0.6, 2.5)
+	Library.UiScale = Value
+	if Library.Window and Library.Window.SetScale then
+		Library.Window.SetScale(Value)
+	end
+	for _, Scale in ipairs(Library.ScaleObjects) do
+		Scale.Scale = Value
+	end
+end
+
 function Library:GetAccent()
 	local Theme = require(Root.Themes)[Library.Theme]
 	return Theme and Theme.Accent
@@ -1005,6 +1032,7 @@ local OpenBox
 -- small box under the title (click again to collapse). Used by interactive elements so a screen
 -- full of widgets isn't a screen full of description text; Paragraph/Gallery keep it visible.
 return function(Title, Desc, Parent, Hover, AsTooltip, ControlInset)
+	local Library = require(Root)
 	local Element = {}
 	local Expanded = false
 
@@ -1090,7 +1118,7 @@ return function(Title, Desc, Parent, Hover, AsTooltip, ControlInset)
 		})
 
 		local function Fit()
-			local room = Element.TitleRow.AbsoluteSize.X - (HasTooltip and 22 or 0)
+			local room = Element.TitleRow.AbsoluteSize.X / Library.UiScale - (HasTooltip and 22 or 0)
 			if room <= 0 then return end
 			local width = game:GetService("TextService"):GetTextSize(Element.TitleLabel.Text, 13, Enum.Font.GothamMedium, Vector2.new(10000, 14)).X
 			Element.TitleLabel.Size = UDim2.fromOffset(math.clamp(width + 4, 10, room), 14)
@@ -1128,14 +1156,14 @@ return function(Title, Desc, Parent, Hover, AsTooltip, ControlInset)
 			Expanded = true
 			Element.InfoIcon.BackgroundTransparency = 0
 			local Scroll = Element.Frame:FindFirstAncestorOfClass("ScrollingFrame")
-			local Width = math.max(Element.Frame.AbsoluteSize.X - 20, 60)
+			local Width = math.max(Element.Frame.AbsoluteSize.X / Library.UiScale - 20, 60)
 			local Text = game:GetService("TextService"):GetTextSize(Element.DescLabel.Text, 12, Enum.Font.Gotham, Vector2.new(Width - 16, 10000))
 			local Height = Text.Y + 14
 			local Up = false
 			if Scroll then
 				local RowBottom = Element.Frame.AbsolutePosition.Y + Element.Frame.AbsoluteSize.Y
 				local Room = Scroll.AbsolutePosition.Y + Scroll.AbsoluteSize.Y - RowBottom
-				Up = Room < Height + 12 and Element.Frame.AbsolutePosition.Y - Scroll.AbsolutePosition.Y > Room
+				Up = Room < (Height + 12) * Library.UiScale and Element.Frame.AbsolutePosition.Y - Scroll.AbsolutePosition.Y > Room
 			end
 			Element.DescLabel.AutomaticSize = Enum.AutomaticSize.None
 			Element.DescLabel.Size = UDim2.new(1, -20, 0, Height)
@@ -1843,8 +1871,9 @@ return function(Title, Parent)
 	})
 
 	Creator.AddSignal(Section.Layout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-		Section.Container.Size = UDim2.new(1, 0, 0, Section.Layout.AbsoluteContentSize.Y)
-		Section.Root.Size = UDim2.new(1, 0, 0, Section.Layout.AbsoluteContentSize.Y + 25)
+		local Height = Section.Layout.AbsoluteContentSize.Y / require(Root).UiScale
+		Section.Container.Size = UDim2.new(1, 0, 0, Height)
+		Section.Root.Size = UDim2.new(1, 0, 0, Height + 25)
 	end)
 	function Section:SetTitle(Text)
 		Section.Root.SectionTitle.Text = Text
@@ -1894,7 +1923,7 @@ function TabModule:GetCurrentTabPos()
 	local TabHolderPos = TabModule.Window.TabHolder.AbsolutePosition.Y
 	local TabPos = TabModule.Tabs[TabModule.SelectedTab].Frame.AbsolutePosition.Y
 
-	return TabPos - TabHolderPos
+	return (TabPos - TabHolderPos) / require(Root).UiScale
 end
 
 function TabModule:New(Title, Icon, Parent)
@@ -2028,7 +2057,7 @@ function TabModule:New(Title, Icon, Parent)
 	})
 
 	Creator.AddSignal(ContainerLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-		Tab.ContainerFrame.CanvasSize = UDim2.new(0, 0, 0, ContainerLayout.AbsoluteContentSize.Y + 2)
+		Tab.ContainerFrame.CanvasSize = UDim2.new(0, 0, 0, ContainerLayout.AbsoluteContentSize.Y / Library.UiScale + 2)
 	end)
 
 	Tab.Motor, Tab.SetTransparency = Creator.SpringMotor(1, Tab.Frame, "BackgroundTransparency")
@@ -2523,12 +2552,21 @@ return function(Config)
 		Window.ContainerHolder
 	})
 
+	Window.UIScale = New("UIScale", { Scale = Library.UiScale })
+	Window.SetScale = function(Value)
+		Window.UIScale.Scale = Value
+		if Window.Maximized then
+			Window.Maximize(true, true, true)
+		end
+	end
+
 	Window.Root = New("Frame", {
 		BackgroundTransparency = 1,
 		Size = Window.Size,
 		Position = Window.Position,
 		Parent = Config.Parent,
 	}, {
+		Window.UIScale,
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
 		Window.ContainerCanvas,
@@ -2607,8 +2645,8 @@ return function(Config)
 			OldSizeX = Window.Size.X.Offset
 			OldSizeY = Window.Size.Y.Offset
 		end
-		local SizeX = Value and Camera.ViewportSize.X or OldSizeX
-		local SizeY = Value and Camera.ViewportSize.Y or OldSizeY
+		local SizeX = Value and Camera.ViewportSize.X / Window.UIScale.Scale or OldSizeX
+		local SizeY = Value and Camera.ViewportSize.Y / Window.UIScale.Scale or OldSizeY
 		SizeMotor:setGoal({
 			X = Flipper[Instant and "Instant" or "Spring"].new(SizeX, { frequency = 6 }),
 			Y = Flipper[Instant and "Instant" or "Spring"].new(SizeY, { frequency = 6 }),
@@ -2684,7 +2722,7 @@ return function(Config)
 			(Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch)
 			and Resizing
 		then
-			local Delta = Input.Position - ResizePos
+			local Delta = (Input.Position - ResizePos) / Window.UIScale.Scale
 			local StartSize = Window.Size
 
 			local TargetSize = Vector3.new(StartSize.X.Offset, StartSize.Y.Offset, 0) + Vector3.new(1, 1, 0) * Delta
@@ -2706,7 +2744,7 @@ return function(Config)
 	end)
 
 	Creator.AddSignal(Window.TabHolder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-		Window.TabHolder.CanvasSize = UDim2.new(0, 0, 0, Window.TabHolder.UIListLayout.AbsoluteContentSize.Y)
+		Window.TabHolder.CanvasSize = UDim2.new(0, 0, 0, Window.TabHolder.UIListLayout.AbsoluteContentSize.Y / Library.UiScale)
 	end)
 
 	Creator.AddSignal(UserInputService.InputBegan, function(Input)
@@ -2811,6 +2849,14 @@ return function(Config)
 
 	function Window:SelectTab(Tab)
 		TabModule:SelectTab(1)
+	end
+
+	local BaseSetScale = Window.SetScale
+	Window.SetScale = function(Value)
+		BaseSetScale(Value)
+		task.delay(0.15, function()
+			Window.SelectorPosMotor:setGoal(Instant(TabModule:GetCurrentTabPos()))
+		end)
 	end
 
 	Creator.AddSignal(Window.TabHolder:GetPropertyChangedSignal("CanvasPosition"), function()
@@ -3021,21 +3067,54 @@ function Creator.Viewport(model, size, portrait)
 		end
 	end
 	clone.Parent = frame
+	task.spawn(pcall, game:GetService("ContentProvider").PreloadAsync, game:GetService("ContentProvider"), { clone })
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = 40
 	camera.Parent = frame
 	frame.CurrentCamera = camera
-	local cf, extents = clone:GetBoundingBox()
+	-- frame the visible parts only: models carry big transparent hitboxes / range parts that would shrink the unit to a dot
+	local low, high
+	for _, d in ipairs(clone:GetDescendants()) do
+		if d:IsA("BasePart") and d.Transparency < 0.95 then
+			local half = d.Size / 2
+			for _, sx in ipairs({ -1, 1 }) do
+				for _, sy in ipairs({ -1, 1 }) do
+					for _, sz in ipairs({ -1, 1 }) do
+						local corner = d.CFrame:PointToWorldSpace(Vector3.new(half.X * sx, half.Y * sy, half.Z * sz))
+						low = low and low:Min(corner) or corner
+						high = high and high:Max(corner) or corner
+					end
+				end
+			end
+		end
+	end
+	if not low then
+		local label = Creator.New("TextLabel", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Text = string.upper(string.sub(model.Name, 1, 1)),
+			TextScaled = true,
+			TextTransparency = 0.5,
+			TextColor3 = Color3.new(1, 1, 1),
+		})
+		label.Parent = frame
+		return frame
+	end
+	local center, extents = (low + high) / 2, high - low
+	local look = clone:GetPivot().LookVector
+	local head = clone:FindFirstChild("Head", true)
 	if portrait then
-		local head = clone:FindFirstChild("Head", true)
-		local focus = head and head:IsA("BasePart") and head.Position or (cf.Position + Vector3.new(0, extents.Y * 0.32, 0))
+		local focus = center + Vector3.new(0, extents.Y * 0.32, 0)
+		if head and head:IsA("BasePart") and head.Transparency < 0.95 and (head.Position - center).Magnitude <= extents.Magnitude then
+			focus = head.Position
+		end
 		local window = extents.Y * 0.42 -- height of the slice that stays in view
 		local distance = (window / 2) / math.tan(math.rad(camera.FieldOfView / 2))
-		camera.CFrame = CFrame.lookAt(focus + cf.LookVector * distance + Vector3.new(0, window * 0.1, 0), focus - Vector3.new(0, window * 0.12, 0))
+		camera.CFrame = CFrame.lookAt(focus + look * distance + Vector3.new(0, window * 0.1, 0), focus - Vector3.new(0, window * 0.12, 0))
 		return frame
 	end
 	local distance = math.max(extents.X, extents.Y, extents.Z) * 1.4
-	camera.CFrame = CFrame.lookAt(cf.Position + cf.LookVector * distance + Vector3.new(0, extents.Y * 0.1, 0), cf.Position)
+	camera.CFrame = CFrame.lookAt(center + look * distance + Vector3.new(0, extents.Y * 0.1, 0), center)
 	return frame
 end
 
@@ -3810,6 +3889,7 @@ function Element:New(Idx, Config)
 		New("UISizeConstraint", {
 			MinSize = Vector2.new(170, 0),
 		}),
+		Library:ScaleObject(),
 	})
 	table.insert(Library.OpenFrames, DropdownHolderCanvas)
 
@@ -3828,14 +3908,14 @@ function Element:New(Idx, Config)
 	local ListSizeX = 0
 	local function RecalculateListSize()
 		-- about 7 rows at most, and never more than half the screen: long lists scroll (and get a search box)
-		local maxHeight = math.min(260 + TopOffset, math.floor(ScreenSize().Y * 0.5))
-		local height = DropdownListLayout.AbsoluteContentSize.Y + 10 + TopOffset
+		local maxHeight = math.min(260 + TopOffset, math.floor(ScreenSize().Y * 0.5 / Library.UiScale))
+		local height = DropdownListLayout.AbsoluteContentSize.Y / Library.UiScale + 10 + TopOffset
 		DropdownHolderCanvas.Size = UDim2.fromOffset(math.min(ListSizeX, MAX_WIDTH), math.min(height, maxHeight))
 		RecalculateListPosition()
 	end
 
 	local function RecalculateCanvasSize()
-		DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0, DropdownListLayout.AbsoluteContentSize.Y)
+		DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0, DropdownListLayout.AbsoluteContentSize.Y / Library.UiScale)
 	end
 
 	RecalculateListPosition()
