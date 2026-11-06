@@ -80,25 +80,26 @@ node(26, "Keybind", "ModuleScript", 20)
 node(27, "Paragraph", "ModuleScript", 20)
 node(28, "Reorder", "ModuleScript", 20)
 node(29, "Slider", "ModuleScript", 20)
-node(30, "Toggle", "ModuleScript", 20)
-node(31, "Icons", "ModuleScript", 1)
-node(32, "Packages", "Folder", 1)
-node(33, "Flipper", "ModuleScript", 32)
-node(34, "BaseMotor", "ModuleScript", 33)
-node(35, "GroupMotor", "ModuleScript", 33)
-node(36, "Instant", "ModuleScript", 33)
-node(37, "Linear", "ModuleScript", 33)
-node(38, "Signal", "ModuleScript", 33)
-node(39, "SingleMotor", "ModuleScript", 33)
-node(40, "Spring", "ModuleScript", 33)
-node(41, "isMotor", "ModuleScript", 33)
-node(42, "Themes", "ModuleScript", 1)
-node(43, "Amethyst", "ModuleScript", 42)
-node(44, "Aqua", "ModuleScript", 42)
-node(45, "Dark", "ModuleScript", 42)
-node(46, "Darker", "ModuleScript", 42)
-node(47, "Light", "ModuleScript", 42)
-node(48, "Rose", "ModuleScript", 42)
+node(30, "Stats", "ModuleScript", 20)
+node(31, "Toggle", "ModuleScript", 20)
+node(32, "Icons", "ModuleScript", 1)
+node(33, "Packages", "Folder", 1)
+node(34, "Flipper", "ModuleScript", 33)
+node(35, "BaseMotor", "ModuleScript", 34)
+node(36, "GroupMotor", "ModuleScript", 34)
+node(37, "Instant", "ModuleScript", 34)
+node(38, "Linear", "ModuleScript", 34)
+node(39, "Signal", "ModuleScript", 34)
+node(40, "SingleMotor", "ModuleScript", 34)
+node(41, "Spring", "ModuleScript", 34)
+node(42, "isMotor", "ModuleScript", 34)
+node(43, "Themes", "ModuleScript", 1)
+node(44, "Amethyst", "ModuleScript", 43)
+node(45, "Aqua", "ModuleScript", 43)
+node(46, "Dark", "ModuleScript", 43)
+node(47, "Darker", "ModuleScript", 43)
+node(48, "Light", "ModuleScript", 43)
+node(49, "Rose", "ModuleScript", 43)
 Sources[1] = function(script)
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
@@ -268,6 +269,10 @@ function Library:SetScale(Value)
 	for _, Scale in ipairs(Library.ScaleObjects) do
 		Scale.Scale = Value
 	end
+end
+
+function Library:GetThemeData()
+	return require(Root.Themes)[Library.Theme]
 end
 
 function Library:GetAccent()
@@ -1216,8 +1221,8 @@ return function(Title, Desc, Parent, Hover, AsTooltip, ControlInset)
 			VerticalAlignment = Enum.VerticalAlignment.Center,
 		}),
 		New("UIPadding", {
-			PaddingBottom = UDim.new(0, 13),
-			PaddingTop = UDim.new(0, 13),
+			PaddingBottom = UDim.new(0, 9),
+			PaddingTop = UDim.new(0, 9),
 		}),
 		Element.TitleRow or Element.TitleLabel,
 		not AsTooltip and Element.DescLabel or nil,
@@ -1570,7 +1575,7 @@ return function(Window, Decor)
 	local Holder = New("Frame", { Name = "FestivalDecor", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = Z, Parent = Window.Root })
 	local Built
 	local function Build()
-		local Size = Window.Root.AbsoluteSize
+		local Size = Window.Root.AbsoluteSize / require(Root).UiScale
 		if Size.X < 50 or Built == Size then return end
 		Built = Size
 		Holder:ClearAllChildren()
@@ -1831,8 +1836,9 @@ local Creator = require(Root.Creator)
 
 local New = Creator.New
 
-return function(Title, Parent)
+return function(Title, Parent, Icon)
 	local Section = {}
+	local IconImage = Icon and require(Root):GetIcon(Icon)
 
 	Section.Layout = New("UIListLayout", {
 		Padding = UDim.new(0, 5),
@@ -1840,7 +1846,7 @@ return function(Title, Parent)
 
 	Section.Container = New("Frame", {
 		Size = UDim2.new(1, 0, 0, 26),
-		Position = UDim2.fromOffset(0, 24),
+		Position = UDim2.fromOffset(0, 22),
 		BackgroundTransparency = 1,
 	}, {
 		Section.Layout,
@@ -1858,22 +1864,32 @@ return function(Title, Parent)
 			Text = Title,
 			TextTransparency = 0,
 			FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal),
-			TextSize = 18,
+			TextSize = 14,
 			TextXAlignment = "Left",
 			TextYAlignment = "Center",
-			Size = UDim2.new(1, -16, 0, 18),
-			Position = UDim2.fromOffset(0, 2),
+			Size = UDim2.new(1, IconImage and -36 or -16, 0, 16),
+			Position = UDim2.fromOffset(IconImage and 20 or 0, 2),
 			ThemeTag = {
-				TextColor3 = "Text",
+				TextColor3 = "SubText",
 			},
 		}),
+		IconImage and New("ImageLabel", {
+			Name = "SectionIcon",
+			Image = IconImage,
+			BackgroundTransparency = 1,
+			Size = UDim2.fromOffset(14, 14),
+			Position = UDim2.fromOffset(1, 3),
+			ThemeTag = {
+				ImageColor3 = "SubText",
+			},
+		}) or nil,
 		Section.Container,
 	})
 
 	Creator.AddSignal(Section.Layout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 		local Height = Section.Layout.AbsoluteContentSize.Y / require(Root).UiScale
 		Section.Container.Size = UDim2.new(1, 0, 0, Height)
-		Section.Root.Size = UDim2.new(1, 0, 0, Height + 25)
+		Section.Root.Size = UDim2.new(1, 0, 0, Height + 24)
 	end)
 	function Section:SetTitle(Text)
 		Section.Root.SectionTitle.Text = Text
@@ -1949,7 +1965,7 @@ function TabModule:New(Title, Icon, Parent)
 	end
 
 	Tab.Frame = New("TextButton", {
-		Size = UDim2.new(1, 0, 0, 34),
+		Size = UDim2.new(1, 0, 0, 30),
 		BackgroundTransparency = 1,
 		Parent = Parent,
 		ThemeTag = {
@@ -2084,10 +2100,10 @@ function TabModule:New(Title, Icon, Parent)
 	Tab.Container = Tab.ContainerFrame
 	Tab.ScrollFrame = Tab.Container
 
-	function Tab:AddSection(SectionTitle)
+	function Tab:AddSection(SectionTitle, Icon)
 		local Section = { Type = "Section", Tab = Tab }
 
-		local SectionFrame = require(Components.Section)(SectionTitle, Tab.Container)
+		local SectionFrame = require(Components.Section)(SectionTitle, Tab.Container, Icon)
 		Section.Container = SectionFrame.Container
 		Section.ScrollFrame = Tab.Container
 		Section.SetTitle = function(_, Text) SectionFrame:SetTitle(Text) end
@@ -2476,7 +2492,7 @@ return function(Config)
 	local Selector = New("Frame", {
 		Size = UDim2.fromOffset(4, 0),
 		BackgroundColor3 = Color3.fromRGB(76, 194, 255),
-		Position = UDim2.fromOffset(0, 17),
+		Position = UDim2.fromOffset(0, 15),
 		AnchorPoint = Vector2.new(0, 0.5),
 		ThemeTag = {
 			BackgroundColor3 = "Accent",
@@ -2528,6 +2544,7 @@ return function(Config)
 		Size = UDim2.new(1, -16, 0, 24),
 		Position = UDim2.fromOffset(Window.TabWidth + 26, 54),
 		BackgroundTransparency = 1,
+		Visible = false,
 		ThemeTag = {
 			TextColor3 = "Text",
 		},
@@ -2544,8 +2561,8 @@ return function(Config)
 	})
 
 	Window.ContainerCanvas = New("Frame", {
-		Size = UDim2.new(1, -Window.TabWidth - 32, 1, -96),
-		Position = UDim2.fromOffset(Window.TabWidth + 26, 84),
+		Size = UDim2.new(1, -Window.TabWidth - 32, 1, -66),
+		Position = UDim2.fromOffset(Window.TabWidth + 26, 54),
 		BackgroundTransparency = 1,
 	}, {
 		Window.ContainerAnim,
@@ -2596,7 +2613,7 @@ return function(Config)
 		Y = Window.Position.Y.Offset,
 	})
 
-	Window.SelectorPosMotor = Flipper.SingleMotor.new(17)
+	Window.SelectorPosMotor = Flipper.SingleMotor.new(15)
 	Window.SelectorSizeMotor = Flipper.SingleMotor.new(0)
 	Window.ContainerBackMotor = Flipper.SingleMotor.new(0)
 	Window.ContainerPosMotor = Flipper.SingleMotor.new(94)
@@ -2612,7 +2629,7 @@ return function(Config)
 	local LastValue = 0
 	local LastTime = 0
 	Window.SelectorPosMotor:onStep(function(Value)
-		Selector.Position = UDim2.new(0, 0, 0, Value + 17)
+		Selector.Position = UDim2.new(0, 0, 0, Value + 15)
 		local Now = tick()
 		local DeltaTime = Now - LastTime
 
@@ -2848,7 +2865,7 @@ return function(Config)
 	end
 
 	function Window:SelectTab(Tab)
-		TabModule:SelectTab(1)
+		TabModule:SelectTab(Tab)
 	end
 
 	local BaseSetScale = Window.SetScale
@@ -3048,7 +3065,7 @@ function Creator.SpringMotor(Initial, Instance, Prop, IgnoreDialogCheck, ResetOn
 	return Motor, SetValue
 end
 
--- model clone framed by a camera looking at its bounding box. portrait = a head-and-shoulders crop
+-- model clone framed by a camera looking at its bounding box. Models with a Humanoid (units) get a head-and-shoulders crop, everything else (items) is framed whole
 -- (the way the game's own unit slots show a unit) instead of the whole body
 function Creator.Viewport(model, size, portrait)
 	local frame = Creator.New("ViewportFrame", {
@@ -3102,6 +3119,7 @@ function Creator.Viewport(model, size, portrait)
 	end
 	local center, extents = (low + high) / 2, high - low
 	local look = clone:GetPivot().LookVector
+	portrait = clone:FindFirstChildWhichIsA("Humanoid", true) ~= nil
 	local head = clone:FindFirstChild("Head", true)
 	if portrait then
 		local focus = center + Vector3.new(0, extents.Y * 0.32, 0)
@@ -3113,8 +3131,10 @@ function Creator.Viewport(model, size, portrait)
 		camera.CFrame = CFrame.lookAt(focus + look * distance + Vector3.new(0, window * 0.1, 0), focus - Vector3.new(0, window * 0.12, 0))
 		return frame
 	end
-	local distance = math.max(extents.X, extents.Y, extents.Z) * 1.4
-	camera.CFrame = CFrame.lookAt(center + look * distance + Vector3.new(0, extents.Y * 0.1, 0), center)
+	local side = look:Cross(Vector3.yAxis)
+	local dir = (look + side * 0.35 + Vector3.yAxis * 0.3).Unit
+	local distance = (extents.Magnitude / 2) / math.sin(math.rad(camera.FieldOfView / 2)) * 0.95
+	camera.CFrame = CFrame.lookAt(center + dir * distance, center)
 	return frame
 end
 
@@ -3735,6 +3755,7 @@ function Element:New(Idx, Config)
 		Values = Config.Values,
 		Value = Config.Multi and {} or Config.Default, -- multi Default is a list; copying it leaked numeric keys
 		Icons = Config.Icons or {}, -- value -> image id / Model / Color3 / emoji, shown before the option
+		Details = Config.Details or {}, -- value -> small second line under the option
 		Multi = Config.Multi,
 		Buttons = {},
 		Opened = false,
@@ -4102,8 +4123,30 @@ function Element:New(Idx, Config)
 				ButtonLabel.Size = UDim2.new(1, -42, 1, 0)
 			end
 
+			local DetailText = Dropdown.Details[Value]
+			local DetailLabel
+			if DetailText then
+				ButtonLabel.AutomaticSize = Enum.AutomaticSize.None
+				ButtonLabel.Size = UDim2.new(ButtonLabel.Size.X.Scale, ButtonLabel.Size.X.Offset, 0, 18)
+				ButtonLabel.Position = UDim2.fromOffset(ButtonLabel.Position.X.Offset, 5)
+				DetailLabel = New("TextLabel", {
+					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
+					Text = DetailText,
+					TextSize = 11,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					BackgroundTransparency = 1,
+					Size = UDim2.new(ButtonLabel.Size.X.Scale, ButtonLabel.Size.X.Offset, 0, 14),
+					Position = UDim2.fromOffset(ButtonLabel.Position.X.Offset, 23),
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					Name = "DetailLabel",
+					ThemeTag = {
+						TextColor3 = "SubText",
+					},
+				})
+			end
+
 			local Button = New("TextButton", {
-				Size = UDim2.new(1, -5, 0, 32),
+				Size = UDim2.new(1, -5, 0, DetailText and 42 or 32),
 				BackgroundTransparency = 1,
 				ZIndex = 23,
 				Text = "",
@@ -4114,12 +4157,14 @@ function Element:New(Idx, Config)
 			}, {
 				ButtonSelector,
 				ButtonLabel,
+				DetailLabel,
 				New("UICorner", {
 					CornerRadius = UDim.new(0, 6),
 				}),
 			})
 			if typeof(RowIcon) == "Instance" then
 				LazyIcons[Button] = RowIcon -- a 3D preview is built when the list opens
+				if Dropdown.Opened then PlaceIcon(Creator.Icon(RowIcon, 24), Button) end
 			elseif RowIcon ~= nil then
 				PlaceIcon(Creator.Icon(RowIcon, 24), Button)
 			end
@@ -4168,7 +4213,7 @@ function Element:New(Idx, Config)
 				SetSelTransparency(Selected and 0 or 1)
 			end
 
-			ButtonLabel.InputBegan:Connect(function(Input)
+			local function OnPress(Input)
 				if
 					Input.UserInputType == Enum.UserInputType.MouseButton1
 					or Input.UserInputType == Enum.UserInputType.Touch
@@ -4196,7 +4241,12 @@ function Element:New(Idx, Config)
 						Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
 					end
 				end
-			end)
+			end
+			ButtonLabel.InputBegan:Connect(OnPress)
+			if DetailLabel then
+				ButtonSelector.Position = UDim2.fromOffset(-1, 21)
+				DetailLabel.InputBegan:Connect(OnPress)
+			end
 
 			Table:UpdateButton()
 			Dropdown:Display()
@@ -4210,6 +4260,10 @@ function Element:New(Idx, Config)
 			if Button.ButtonLabel then
 				if Button.ButtonLabel.TextBounds.X > ListSizeX then
 					ListSizeX = Button.ButtonLabel.TextBounds.X
+				end
+				local Detail = Button:FindFirstChild("DetailLabel")
+				if Detail and Detail.TextBounds.X > ListSizeX then
+					ListSizeX = Detail.TextBounds.X
 				end
 			end
 		end
@@ -4229,6 +4283,12 @@ function Element:New(Idx, Config)
 
 	function Dropdown:SetIcons(Icons) -- value -> icon (see Creator.Icon); rebuilds the list
 		Dropdown.Icons = Icons or {}
+		Dropdown:BuildDropdownList()
+		Dropdown:Display()
+	end
+
+	function Dropdown:SetDetails(Details) -- value -> small second line; rebuilds the list
+		Dropdown.Details = Details or {}
 		Dropdown:BuildDropdownList()
 		Dropdown:Display()
 	end
@@ -5286,6 +5346,268 @@ return Element
 
 end
 Sources[30] = function(script)
+-- Stats: a status pill plus a grid of stat tiles (icon, label, big value, optional progress bar).
+--
+--   local s = Section:AddStats({ Columns = 3 })
+--   s:SetStatus("Farming", Color3.fromRGB(80, 200, 120))      -- nil text hides the pill
+--   s:SetItems({ { Icon = "coins", Label = "Cash", Value = "$1,200", Note = "small line", Progress = 0.4, Color = nil }, ... })
+-- Config.Notes = true makes the tiles taller so Note fits under the value.
+-- Icon is a lucide name, an image id or an emoji. Tiles are reused between SetItems calls.
+local TweenService = game:GetService("TweenService")
+
+local Root = script.Parent.Parent
+local Creator = require(Root.Creator)
+
+local New = Creator.New
+local FONT = "rbxasset://fonts/families/GothamSSm.json"
+
+local Element = {}
+Element.__index = Element
+Element.__type = "Stats"
+
+function Element:New(Idx, Config)
+	if type(Idx) == "table" and Config == nil then Idx, Config = nil, Idx end
+	Config = Config or {}
+	local Library = self.Library
+	local Columns = Config.Columns or 3
+	local Stats = { Type = "Stats" }
+
+	local StatusDot = New("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 12, 0.5, 0),
+		Size = UDim2.fromOffset(8, 8),
+		BorderSizePixel = 0,
+	}, {
+		New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+	})
+	local StatusText = New("TextLabel", {
+		FontFace = Font.new(FONT, Enum.FontWeight.SemiBold),
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(28, 0),
+		Size = UDim2.new(1, -36, 1, 0),
+		ThemeTag = { TextColor3 = "Text" },
+	})
+	local StatusIcon = New("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 6, 0.5, 0),
+		Size = UDim2.fromOffset(28, 28),
+		BackgroundTransparency = 1,
+		Visible = false,
+	})
+	local StatusRight = New("TextLabel", {
+		FontFace = Font.new(FONT, Enum.FontWeight.Medium),
+		TextSize = 12,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 0),
+		Size = UDim2.new(0.45, -12, 1, 0),
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ThemeTag = { TextColor3 = "SubText" },
+	})
+	local StatusStroke = New("UIStroke", { Transparency = 0.45, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
+	local Status = New("Frame", {
+		LayoutOrder = 1,
+		Visible = false,
+		Size = UDim2.new(1, 0, 0, 32),
+		BackgroundTransparency = 0.82,
+		BorderSizePixel = 0,
+	}, {
+		New("UICorner", { CornerRadius = UDim.new(0, 8) }),
+		StatusStroke,
+		StatusDot,
+		StatusIcon,
+		StatusText,
+		StatusRight,
+	})
+
+	local Grid = New("Frame", {
+		LayoutOrder = 2,
+		BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Size = UDim2.new(1, 0, 0, 0),
+	}, {
+		New("UIGridLayout", {
+			CellSize = UDim2.new(1 / Columns, -5, 0, Config.Notes and 78 or 60),
+			CellPadding = UDim2.fromOffset(5, 5),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+
+	Stats.Frame = New("Frame", {
+		BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Size = UDim2.new(1, 0, 0, 0),
+		Parent = self.Container,
+	}, {
+		New("UIListLayout", { Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder }),
+		Status,
+		Grid,
+	})
+
+	local function accent()
+		return (Library.GetAccent and Library:GetAccent()) or Color3.fromRGB(96, 205, 255)
+	end
+
+	local Tiles = {}
+	local function makeTile(index)
+		local t = { Shown = {} }
+		t.Bar = New("Frame", { Size = UDim2.fromScale(0, 1), BorderSizePixel = 0 }, {
+			New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		})
+		t.Track = New("Frame", {
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 10, 1, -8),
+			Size = UDim2.new(1, -20, 0, 4),
+			BackgroundTransparency = 0.88,
+			BorderSizePixel = 0,
+			ThemeTag = { BackgroundColor3 = "Text" },
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			t.Bar,
+		})
+		t.IconHolder = New("Frame", {
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(10, 9),
+			Size = UDim2.fromOffset(14, 14),
+		})
+		t.Label = New("TextLabel", {
+			FontFace = Font.new(FONT),
+			TextSize = 11,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(29, 9),
+			Size = UDim2.new(1, -37, 0, 14),
+			ThemeTag = { TextColor3 = "SubText" },
+		})
+		t.Value = New("TextLabel", {
+			FontFace = Font.new(FONT, Enum.FontWeight.Bold),
+			TextSize = 17,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(10, 26),
+			Size = UDim2.new(1, -20, 0, 20),
+			ThemeTag = { TextColor3 = "Text" },
+		})
+		t.Note = New("TextLabel", {
+			FontFace = Font.new(FONT),
+			TextSize = 11,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(10, 48),
+			Size = UDim2.new(1, -20, 0, 14),
+			ThemeTag = { TextColor3 = "SubText" },
+		})
+		t.Frame = New("Frame", {
+			LayoutOrder = index,
+			BackgroundTransparency = 0.87,
+			BorderSizePixel = 0,
+			Parent = Grid,
+			ThemeTag = { BackgroundColor3 = "Element" },
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(0, 8) }),
+			New("UIStroke", { Transparency = 0.55, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, ThemeTag = { Color = "ElementBorder" } }),
+			t.IconHolder,
+			t.Label,
+			t.Value,
+			t.Note,
+			t.Track,
+		})
+		return t
+	end
+
+	local function setIcon(t, icon)
+		if t.Shown.Icon == icon then return end
+		t.Shown.Icon = icon
+		t.IconHolder:ClearAllChildren()
+		if t.Picture then t.Picture:Destroy() t.Picture = nil end
+		if icon == nil then return end
+		if typeof(icon) == "Instance" then
+			t.Picture = Creator.Icon(icon, 40)
+			t.Picture.AnchorPoint = Vector2.new(1, 0)
+			t.Picture.Position = UDim2.new(1, -8, 0, 6)
+			t.Picture.Parent = t.Frame
+			t.Label.Size = UDim2.new(1, -58, t.Label.Size.Y.Scale, t.Label.Size.Y.Offset)
+			return
+		end
+		local image = Library:GetIcon(icon)
+		if image then
+			New("ImageLabel", {
+				Image = image,
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+				Parent = t.IconHolder,
+				ThemeTag = { ImageColor3 = "Accent" },
+			})
+		else
+			local view = Creator.Icon(icon, 14)
+			view.Parent = t.IconHolder
+		end
+	end
+
+	function Stats:SetItems(Items)
+		for index, item in ipairs(Items) do
+			local t = Tiles[index] or makeTile(index)
+			Tiles[index] = t
+			t.Frame.Visible = true
+			setIcon(t, item.Icon)
+			t.Label.Text = tostring(item.Label or "")
+			t.Value.Text = tostring(item.Value or "")
+			t.Note.Text = tostring(item.Note or "")
+			t.Note.Visible = item.Note ~= nil
+			t.Value.TextColor3 = item.ValueColor or t.Value.TextColor3
+			local progress = tonumber(item.Progress)
+			t.Track.Visible = progress ~= nil
+			if progress then
+				progress = math.clamp(progress, 0, 1)
+				t.Bar.BackgroundColor3 = item.Color or accent()
+				if t.Shown.Progress ~= progress then
+					t.Shown.Progress = progress
+					TweenService:Create(t.Bar, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(progress, 1) }):Play()
+				end
+			end
+		end
+		for index = #Items + 1, #Tiles do Tiles[index].Frame.Visible = false end
+	end
+
+	local shownIcon
+	function Stats:SetStatus(Text, Color, Icon, Right)
+		Status.Visible = Text ~= nil and Text ~= ""
+		if not Status.Visible then return end
+		Color = Color or accent()
+		StatusText.Text = Text
+		StatusRight.Text = Right or ""
+		StatusRight.TextColor3 = Color
+		Status.Size = UDim2.new(1, 0, 0, Icon and 38 or 32)
+		if Icon ~= shownIcon then
+			shownIcon = Icon
+			StatusIcon:ClearAllChildren()
+			local view = Icon and Creator.Icon(Icon, 28)
+			if view then view.Parent = StatusIcon end
+		end
+		StatusIcon.Visible = Icon ~= nil
+		StatusDot.Visible = Icon == nil
+		StatusText.Position = UDim2.fromOffset(Icon and 42 or 28, 0)
+		StatusText.Size = UDim2.new(Right and 0.55 or 1, Icon and -46 or -36, 1, 0)
+		Status.BackgroundColor3 = Color
+		StatusStroke.Color = Color
+		StatusDot.BackgroundColor3 = Color
+	end
+
+	if Config.Items then Stats:SetItems(Config.Items) end
+	return Stats
+end
+
+return Element
+
+end
+Sources[31] = function(script)
 local TweenService = game:GetService("TweenService")
 local Root = script.Parent.Parent
 local Creator = require(Root.Creator)
@@ -5392,7 +5714,7 @@ end
 return Element
 
 end
-Sources[31] = function(script)
+Sources[32] = function(script)
 -- This file was @generated by Tarmac. It is not intended for manual editing.
 return {
 	assets = {
@@ -6218,7 +6540,7 @@ return {
 }
 
 end
-Sources[33] = function(script)
+Sources[34] = function(script)
 local Flipper = {
 	SingleMotor = require(script.SingleMotor),
 	GroupMotor = require(script.GroupMotor),
@@ -6233,7 +6555,7 @@ local Flipper = {
 return Flipper
 
 end
-Sources[34] = function(script)
+Sources[35] = function(script)
 local RunService = game:GetService("RunService")
 
 local Signal = require(script.Parent.Signal)
@@ -6291,7 +6613,7 @@ end
 return BaseMotor
 
 end
-Sources[35] = function(script)
+Sources[36] = function(script)
 local BaseMotor = require(script.Parent.BaseMotor)
 local SingleMotor = require(script.Parent.SingleMotor)
 
@@ -6404,7 +6726,7 @@ end
 return GroupMotor
 
 end
-Sources[36] = function(script)
+Sources[37] = function(script)
 local Instant = {}
 Instant.__index = Instant
 
@@ -6424,7 +6746,7 @@ end
 return Instant
 
 end
-Sources[37] = function(script)
+Sources[38] = function(script)
 local Linear = {}
 Linear.__index = Linear
 
@@ -6463,7 +6785,7 @@ end
 return Linear
 
 end
-Sources[38] = function(script)
+Sources[39] = function(script)
 local Connection = {}
 Connection.__index = Connection
 
@@ -6524,7 +6846,7 @@ end
 return Signal
 
 end
-Sources[39] = function(script)
+Sources[40] = function(script)
 local BaseMotor = require(script.Parent.BaseMotor)
 
 local SingleMotor = setmetatable({}, BaseMotor)
@@ -6594,7 +6916,7 @@ end
 return SingleMotor
 
 end
-Sources[40] = function(script)
+Sources[41] = function(script)
 local VELOCITY_THRESHOLD = 0.001
 local POSITION_THRESHOLD = 0.001
 
@@ -6704,7 +7026,7 @@ end
 return Spring
 
 end
-Sources[41] = function(script)
+Sources[42] = function(script)
 local function isMotor(value)
 	local motorType = tostring(value):match("^Motor%((.+)%)$")
 
@@ -6718,7 +7040,7 @@ end
 return isMotor
 
 end
-Sources[42] = function(script)
+Sources[43] = function(script)
 local Themes = {
 	Names = {
 		"Dark",
@@ -6824,7 +7146,7 @@ Make("Loy Krathong", { bg = "#0A0F24", top = "#1A1636", card = "#4C5A9A", line =
 return Themes
 
 end
-Sources[43] = function(script)
+Sources[44] = function(script)
 return {
 	Name = "Amethyst",
 	Accent = Color3.fromRGB(97, 62, 167),
@@ -6874,7 +7196,7 @@ return {
 }
 
 end
-Sources[44] = function(script)
+Sources[45] = function(script)
 return {
 	Name = "Aqua",
 	Accent = Color3.fromRGB(60, 165, 165),
@@ -6924,7 +7246,7 @@ return {
 }
 
 end
-Sources[45] = function(script)
+Sources[46] = function(script)
 return {
 	Name = "Dark",
 	Accent = Color3.fromRGB(96, 205, 255),
@@ -6974,7 +7296,7 @@ return {
 }
 
 end
-Sources[46] = function(script)
+Sources[47] = function(script)
 return {
 	Name = "Darker",
 	Accent = Color3.fromRGB(72, 138, 182),
@@ -7007,7 +7329,7 @@ return {
 }
 
 end
-Sources[47] = function(script)
+Sources[48] = function(script)
 return {
 	Name = "Light",
 	Accent = Color3.fromRGB(0, 103, 192),
@@ -7057,7 +7379,7 @@ return {
 }
 
 end
-Sources[48] = function(script)
+Sources[49] = function(script)
 return {
 	Name = "Rose",
 	Accent = Color3.fromRGB(180, 55, 90),
